@@ -27,6 +27,7 @@ import {
 } from '/@/renderer/features/lyrics/unsynchronized-lyrics';
 import { openLyricsSettingsModal } from '/@/renderer/features/lyrics/utils/open-lyrics-settings-modal';
 import { usePlayerEvents } from '/@/renderer/features/player/audio-player/hooks/use-player-events';
+import { useIsRadioActive } from '/@/renderer/features/radio/hooks/use-radio-player';
 import { ComponentErrorBoundary } from '/@/renderer/features/shared/components/component-error-boundary';
 import { queryClient } from '/@/renderer/lib/react-query';
 import { useLyricsSettings, usePlayerSong } from '/@/renderer/store';
@@ -48,6 +49,10 @@ type LyricsProps = {
 
 export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' }: LyricsProps) => {
     const currentSong = usePlayerSong();
+    const isRadioActive = useIsRadioActive();
+
+    const isLyricsDisabled = isRadioActive;
+
     const {
         enableAutoTranslation,
         preferLocalLyrics,
@@ -152,7 +157,8 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         lyricsQueries.songLyrics(
             {
                 options: {
-                    enabled: !!pendingSongId && pendingSongId === currentSong?.id,
+                    enabled:
+                        !!pendingSongId && pendingSongId === currentSong?.id && !isLyricsDisabled,
                 },
                 query: { songId: currentSong?.id || '' },
                 serverId: currentSong?._serverId || '',
@@ -190,11 +196,15 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         }
         return baseSynced;
     }, [showRomanizedLyrics, romanizeProxyLyrics, baseSynced, preferLocalLyrics, data?.local]);
+    
+    const displayLyrics = isLyricsDisabled ? null : lyrics;
 
     const currentOffsetMs = useMemo(() => {
         if (!data) return 0;
         return getDisplayOffset(lyrics, data.selectedOffsetMs, indexToUse, data.local);
     }, [data, indexToUse, lyrics]);
+
+    const displayOffsetMs = isLyricsDisabled ? 0 : currentOffsetMs;
 
     const handleOnSearchOverride = useCallback(
         (params: LyricsOverride) => {
@@ -297,7 +307,7 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
     }, [romanizeProxyReady, showRomanizedLyrics]);
 
     const fetchTranslation = useCallback(async () => {
-        if (!lyrics) return;
+        if (!lyrics || isLyricsDisabled) return;
         const originalLyrics = Array.isArray(lyrics.lyrics)
             ? lyrics.lyrics.map(([, line]) => line).join('\n')
             : lyrics.lyrics;
@@ -309,7 +319,13 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         );
         setTranslatedLyrics(TranslatedText);
         setShowTranslation(true);
-    }, [lyrics, translationApiKey, translationApiProvider, translationTargetLanguage]);
+    }, [
+        isLyricsDisabled,
+        lyrics,
+        translationApiKey,
+        translationApiProvider,
+        translationTargetLanguage,
+    ]);
 
     const handleOnTranslateLyric = useCallback(async () => {
         if (translatedLyrics) {
@@ -331,10 +347,10 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
     );
 
     useEffect(() => {
-        if (lyrics && !translatedLyrics && enableAutoTranslation) {
+        if (displayLyrics && !translatedLyrics && enableAutoTranslation) {
             fetchTranslation();
         }
-    }, [lyrics, translatedLyrics, enableAutoTranslation, fetchTranslation]);
+    }, [displayLyrics, translatedLyrics, enableAutoTranslation, fetchTranslation]);
 
     const languages = useMemo(() => {
         const local = data?.local;
@@ -347,8 +363,8 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         return [];
     }, [data?.local]);
 
-    const isLoadingLyrics = isLoading;
-    const hasNoLyrics = !lyrics;
+    const isLoadingLyrics = isLoading && !isLyricsDisabled;
+    const hasNoLyrics = !displayLyrics;
     const [shouldFadeOut, setShouldFadeOut] = useState(false);
 
     useEffect(() => {
@@ -372,10 +388,10 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
     }, [isLoadingLyrics, hasNoLyrics, fadeOutNoLyricsMessage]);
 
     const handleExportLyrics = useCallback(() => {
-        if (lyrics) {
-            openLyricsExportModal({ lyrics, offsetMs: currentOffsetMs, synced });
+        if (displayLyrics) {
+            openLyricsExportModal({ lyrics: displayLyrics, offsetMs: currentOffsetMs, synced });
         }
-    }, [currentOffsetMs, lyrics, synced]);
+    }, [currentOffsetMs, displayLyrics, synced]);
 
     const handleOpenSettings = () => {
         openLyricsSettingsModal(settingsKey);
@@ -423,14 +439,14 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
                             >
                                 {synced ? (
                                     <SynchronizedLyrics
-                                        {...(lyrics as SynchronizedLyricsProps)}
-                                        offsetMs={currentOffsetMs}
+                                        {...(displayLyrics as SynchronizedLyricsProps)}
+                                        offsetMs={displayOffsetMs}
                                         settingsKey={settingsKey}
                                         translatedLyrics={showTranslation ? translatedLyrics : null}
                                     />
                                 ) : (
                                     <UnsynchronizedLyrics
-                                        {...(lyrics as UnsynchronizedLyricsProps)}
+                                        {...(displayLyrics as UnsynchronizedLyricsProps)}
                                         settingsKey={settingsKey}
                                         translatedLyrics={showTranslation ? translatedLyrics : null}
                                     />
@@ -441,11 +457,11 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
                 )}
                 <div className={styles.actionsContainer}>
                     <LyricsActions
-                        hasLyrics={!!lyrics}
+                        hasLyrics={!!displayLyrics}
                         index={indexToUse}
                         isRomanizeProxyLoading={isRomanizeProxyLoading}
                         languages={languages}
-                        offsetMs={currentOffsetMs}
+                        offsetMs={displayOffsetMs}
                         onExportLyrics={handleExportLyrics}
                         onRefetchLyric={handleOnRefetchLyric}
                         onRemoveLyric={handleOnRemoveLyric}

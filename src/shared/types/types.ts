@@ -184,6 +184,7 @@ export enum TableColumn {
     ID = 'id',
     IMAGE = 'imageUrl',
     LAST_PLAYED = 'lastPlayedAt',
+    LAYOUT_FILL = '__layoutFill',
     OWNER = 'username',
     PATH = 'path',
     PLAY_COUNT = 'playCount',
@@ -288,4 +289,5 @@ export interface UniqueId {
 export type WebAudio = {
     context: AudioContext;
     gains: GainNode[];
+    visualizerInputs?: AudioNode[];
 };
