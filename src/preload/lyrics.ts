@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
 
 import {
+    InternetProviderLyricResponse,
     InternetProviderLyricSearchResponse,
     LyricGetQuery,
     LyricSearchQuery,
@@ -26,7 +27,25 @@ const getRemoteLyricsByRemoteId = (id: LyricGetQuery) => {
     return result;
 };
 
+const clearLyricsCache = (): Promise<void> => {
+    return ipcRenderer.invoke('lyric-cache-clear');
+};
+
+const fetchRomanizeProxyLyrics = (
+    songId: string,
+    params: LyricSearchQuery,
+): Promise<InternetProviderLyricResponse | null> => {
+    return ipcRenderer.invoke('lyric-romanize-proxy-fetch', songId, params);
+};
+
+const cancelRomanizeProxyFetch = (songId: string): Promise<void> => {
+    return ipcRenderer.invoke('lyric-romanize-proxy-cancel', songId);
+};
+
 export const lyrics = {
+    cancelRomanizeProxyFetch,
+    clearLyricsCache,
+    fetchRomanizeProxyLyrics,
     getRemoteLyricsByRemoteId,
     getRemoteLyricsBySong,
     searchRemoteLyrics,

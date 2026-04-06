@@ -4,6 +4,11 @@ import { store } from '../settings';
 import { getLyricsBySongId as getGenius, getSearchResults as searchGenius } from './genius';
 import { getLyricsBySongId as getLrcLib, getSearchResults as searchLrcLib } from './lrclib';
 import { getLyricsBySongId as getNetease, getSearchResults as searchNetease } from './netease';
+import {
+    fetchForSong as fetchRomanizeProxySong,
+    getLyricsBySongId as getRomanizeProxy,
+    getSearchResults as searchRomanizeProxy,
+} from './romanize-proxy';
 import { orderSearchResults } from './shared';
 import {
     getLyricsBySongId as getSimpMusic,
@@ -16,6 +21,7 @@ export enum LyricSource {
     GENIUS = 'Genius',
     LRCLIB = 'lrclib.net',
     NETEASE = 'NetEase',
+    ROMANIZE_PROXY = 'Romanize Proxy',
     SIMPMUSIC = 'SimpMusic',
 }
 
@@ -71,6 +77,7 @@ const SEARCH_FETCHERS: Record<LyricSource, SearchFetcher> = {
     [LyricSource.GENIUS]: searchGenius,
     [LyricSource.LRCLIB]: searchLrcLib,
     [LyricSource.NETEASE]: searchNetease,
+    [LyricSource.ROMANIZE_PROXY]: searchRomanizeProxy,
     [LyricSource.SIMPMUSIC]: searchSimpMusic,
 };
 
@@ -78,6 +85,7 @@ const GET_FETCHERS: Record<LyricSource, GetFetcher> = {
     [LyricSource.GENIUS]: getGenius,
     [LyricSource.LRCLIB]: getLrcLib,
     [LyricSource.NETEASE]: getNetease,
+    [LyricSource.ROMANIZE_PROXY]: getRomanizeProxy,
     [LyricSource.SIMPMUSIC]: getSimpMusic,
 };
 
@@ -87,8 +95,9 @@ const lyricCache = new Map<string, CachedLyrics>();
 
 const searchAllSources = async (
     params: LyricSearchQuery,
+    sourcesOverride?: LyricSource[],
 ): Promise<InternetProviderLyricSearchResponse[]> => {
-    const sources = store.get('lyrics', []) as LyricSource[];
+    const sources = sourcesOverride ?? (store.get('lyrics', []) as LyricSource[]);
 
     const searchPromises = sources.map((source) =>
         SEARCH_FETCHERS[source](params).then((searchResults) => ({ searchResults, source })),
@@ -100,10 +109,23 @@ const searchAllSources = async (
 
     for (const result of settled) {
         if (result.status === 'fulfilled' && result.value.searchResults) {
-            allSearchResults.push(...result.value.searchResults);
+            const { source, searchResults } = result.value;
+            console.log(
+                `[Lyrics] ${source}: returned ${searchResults.length} result(s)`,
+                searchResults.map((r) => ({
+                    artist: r.artist,
+                    id: r.id,
+                    isSync: r.isSync,
+                    name: r.name,
+                    source: r.source,
+                })),
+            );
+            allSearchResults.push(...searchResults);
         } else if (result.status === 'rejected') {
             const index = settled.indexOf(result);
-            console.error(`Error searching ${sources[index]} for lyrics:`, result.reason);
+            console.error(`[Lyrics] ${sources[index]}: search failed:`, result.reason);
+        } else if (result.status === 'fulfilled' && !result.value.searchResults) {
+            console.log(`[Lyrics] ${result.value.source}: returned null (no results)`);
         }
     }
     return allSearchResults;
@@ -128,7 +150,10 @@ const getRemoteLyrics = async (song: Song) => {
         name: song.name,
     };
 
-    const allSearchResults = await searchAllSources(params);
+    // Romanize Proxy is handled exclusively via the background fetch mechanism;
+    // exclude it from the main auto-fetch pipeline so regular sources return quickly.
+    const autoSources = sources.filter((s) => s !== LyricSource.ROMANIZE_PROXY);
+    const allSearchResults = await searchAllSources(params, autoSources);
 
     if (allSearchResults.length === 0) {
         return null;
@@ -139,19 +164,27 @@ const getRemoteLyrics = async (song: Song) => {
         results: allSearchResults,
     });
 
+    if (rankedResults.length === 0) {
+        return null;
+    }
+
+    // Score is 0-1 where 0 = perfect match, 1 = worst match
+    const matchThreshold = 0.55;
+
     const bestMatch = rankedResults[0];
 
     if (!bestMatch) {
         return null;
     }
 
-    // Score is 0-1 where 0 = perfect match, 1 = worst match
-    const matchThreshold = 0.55;
     const matchScore = bestMatch.score ?? 1;
 
     if (matchScore > matchThreshold) {
+        console.log(`[Lyrics] best match score ${matchScore} exceeds threshold ${matchThreshold}, returning null`);
         return null;
     }
+
+    console.log(`[Lyrics] selected: ${bestMatch.source} — "${bestMatch.name}" by "${bestMatch.artist}" (score: ${bestMatch.score})`);
 
     let lyricsFromSource: InternetProviderLyricResponse | null = null;
 
@@ -198,6 +231,7 @@ const searchRemoteLyrics = async (params: LyricSearchQuery) => {
         [LyricSource.GENIUS]: [],
         [LyricSource.LRCLIB]: [],
         [LyricSource.NETEASE]: [],
+        [LyricSource.ROMANIZE_PROXY]: [],
         [LyricSource.SIMPMUSIC]: [],
     };
     for (const item of allSearchResults) {
@@ -216,6 +250,36 @@ const getRemoteLyricsById = async (params: LyricGetQuery): Promise<null | string
 
     return response;
 };
+
+ipcMain.handle('lyric-cache-clear', () => {
+    lyricCache.clear();
+});
+
+const romanizeAbortControllers = new Map<string, AbortController>();
+
+ipcMain.handle('lyric-romanize-proxy-fetch', async (_event, songId: string, params: LyricSearchQuery) => {
+    // Cancel any existing fetch for this song slot (keyed on a shared key so we cancel across songs)
+    for (const [key, controller] of romanizeAbortControllers) {
+        controller.abort();
+        romanizeAbortControllers.delete(key);
+    }
+    const controller = new AbortController();
+    romanizeAbortControllers.set(songId, controller);
+    try {
+        const result = await fetchRomanizeProxySong(params, controller.signal);
+        return result;
+    } finally {
+        romanizeAbortControllers.delete(songId);
+    }
+});
+
+ipcMain.handle('lyric-romanize-proxy-cancel', (_event, songId: string) => {
+    const controller = romanizeAbortControllers.get(songId);
+    if (controller) {
+        controller.abort();
+        romanizeAbortControllers.delete(songId);
+    }
+});
 
 ipcMain.handle('lyric-by-song', async (_event, song: any) => {
     const lyric = await getRemoteLyrics(song);

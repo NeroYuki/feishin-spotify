@@ -1,3 +1,4 @@
+import isElectron from 'is-electron';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -9,6 +10,7 @@ import { queryKeys } from '/@/renderer/api/query-keys';
 import { translateLyrics } from '/@/renderer/features/lyrics/api/lyric-translate';
 import {
     computeSelectedFromResult,
+    formatLyricsForDisplay,
     getDisplayOffset,
     lyricsQueries,
     type LyricsQueryResult,
@@ -33,7 +35,11 @@ import { Center } from '/@/shared/components/center/center';
 import { Group } from '/@/shared/components/group/group';
 import { Spinner } from '/@/shared/components/spinner/spinner';
 import { Text } from '/@/shared/components/text/text';
-import { LyricsOverride } from '/@/shared/types/domain-types';
+import {
+    FullLyricsMetadata,
+    LyricsOverride,
+    LyricSource,
+} from '/@/shared/types/domain-types';
 
 type LyricsProps = {
     fadeOutNoLyricsMessage?: boolean;
@@ -45,6 +51,9 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
     const {
         enableAutoTranslation,
         preferLocalLyrics,
+        preferRomanizeProxy,
+        romanizeProxyApiKey,
+        sources,
         translationApiKey,
         translationApiProvider,
         translationTargetLanguage,
@@ -56,6 +65,10 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
     const [pendingSongId, setPendingSongId] = useState<string | undefined>(currentSong?.id);
     const lyricsFetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const previousSongIdRef = useRef<string | undefined>(currentSong?.id);
+    const [romanizeProxyLyrics, setRomanizeProxyLyrics] = useState<FullLyricsMetadata | null>(null);
+    const [isRomanizeProxyLoading, setIsRomanizeProxyLoading] = useState(false);
+    const [showRomanizedLyrics, setShowRomanizedLyrics] = useState(false);
+    const romanizeProxyReady = romanizeProxyLyrics !== null;
 
     useEffect(() => {
         const currentSongId = currentSong?.id;
@@ -82,6 +95,54 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         };
     }, [currentSong?.id]);
 
+    // Background Romanize Proxy fetch
+    useEffect(() => {
+        if (!isElectron()) return;
+        if (!sources.includes(LyricSource.ROMANIZE_PROXY)) return;
+        if (!romanizeProxyApiKey) return;
+
+        const songId = currentSong?.id;
+        if (!songId || !currentSong?.name) return;
+
+        setRomanizeProxyLyrics(null);
+        setShowRomanizedLyrics(false);
+        setIsRomanizeProxyLoading(true);
+
+        const params = {
+            album: currentSong.album ?? '',
+            artist: currentSong.artistName ?? '',
+            duration: currentSong.duration ?? 0,
+            name: currentSong.name,
+        };
+
+        window.api.lyrics.fetchRomanizeProxyLyrics(songId, params).then((result) => {
+            if (!result) {
+                setIsRomanizeProxyLoading(false);
+                return;
+            }
+            const metadata: FullLyricsMetadata = {
+                    artist: result.artist,
+                    lyrics: formatLyricsForDisplay(result.lyrics),
+                    name: result.name,
+                    remote: true,
+                    source: result.source,
+                };
+            setRomanizeProxyLyrics(metadata);
+            setIsRomanizeProxyLoading(false);
+            if (preferRomanizeProxy) {
+                setShowRomanizedLyrics(true);
+            }
+        }).catch(() => {
+            setIsRomanizeProxyLoading(false);
+        });
+
+        return () => {
+            window.api.lyrics.cancelRomanizeProxyFetch(songId);
+            setIsRomanizeProxyLoading(false);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentSong?.id]);
+
     const lyricsKey = useMemo(() => {
         if (!currentSong?._serverId || !currentSong?.id) return null;
         return queryKeys.songs.lyrics(currentSong._serverId, { songId: currentSong.id });
@@ -105,10 +166,30 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         if (data != null) setIndexState(data.selectedStructuredIndex);
     }, [data]);
 
-    const { selected: lyrics, selectedSynced: synced } = useMemo(() => {
+    const { selected: baseLyrics, selectedSynced: baseSynced } = useMemo(() => {
         if (!data) return { selected: null, selectedSynced: false };
         return computeSelectedFromResult(data, preferLocalLyrics, indexToUse);
     }, [data, indexToUse, preferLocalLyrics]);
+
+    const lyrics = useMemo(() => {
+        const hasLocal =
+            (Array.isArray(data?.local) && (data?.local.length ?? 0) > 0) ||
+            (data?.local != null && !Array.isArray(data?.local) && 'lyrics' in data.local && Boolean(data.local.lyrics));
+        const romanizeOverridesBase = showRomanizedLyrics && romanizeProxyLyrics && !(preferLocalLyrics && hasLocal);
+        if (romanizeOverridesBase) return romanizeProxyLyrics;
+        return baseLyrics;
+    }, [showRomanizedLyrics, romanizeProxyLyrics, baseLyrics, preferLocalLyrics, data?.local]);
+
+    const synced = useMemo(() => {
+        const hasLocal =
+            (Array.isArray(data?.local) && (data?.local.length ?? 0) > 0) ||
+            (data?.local != null && !Array.isArray(data?.local) && 'lyrics' in data.local && Boolean(data.local.lyrics));
+        const romanizeOverridesBase = showRomanizedLyrics && romanizeProxyLyrics && !(preferLocalLyrics && hasLocal);
+        if (romanizeOverridesBase) {
+            return Array.isArray(romanizeProxyLyrics.lyrics);
+        }
+        return baseSynced;
+    }, [showRomanizedLyrics, romanizeProxyLyrics, baseSynced, preferLocalLyrics, data?.local]);
 
     const currentOffsetMs = useMemo(() => {
         if (!data) return 0;
@@ -190,6 +271,30 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         );
         await queryClient.invalidateQueries({ queryKey: lyricsKey });
     }, [currentSong, lyricsKey]);
+
+    const handleOnRefetchLyric = useCallback(async () => {
+        if (!currentSong || !lyricsKey) return;
+        if (isElectron()) {
+            await window.api.lyrics.clearLyricsCache();
+        }
+        queryClient.setQueryData<LyricsQueryResult>(lyricsKey, (prev) =>
+            prev
+                ? {
+                      ...prev,
+                      overrideData: null,
+                      overrideSelection: null,
+                      remoteAuto: null,
+                      suppressRemoteAuto: false,
+                  }
+                : prev,
+        );
+        await queryClient.invalidateQueries({ queryKey: lyricsKey });
+    }, [currentSong, lyricsKey]);
+
+    const handleOnToggleRomanizedLyrics = useCallback(() => {
+        if (!romanizeProxyReady && !showRomanizedLyrics) return;
+        setShowRomanizedLyrics((prev) => !prev);
+    }, [romanizeProxyReady, showRomanizedLyrics]);
 
     const fetchTranslation = useCallback(async () => {
         if (!lyrics) return;
@@ -338,19 +443,24 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
                     <LyricsActions
                         hasLyrics={!!lyrics}
                         index={indexToUse}
+                        isRomanizeProxyLoading={isRomanizeProxyLoading}
                         languages={languages}
                         offsetMs={currentOffsetMs}
                         onExportLyrics={handleExportLyrics}
+                        onRefetchLyric={handleOnRefetchLyric}
                         onRemoveLyric={handleOnRemoveLyric}
                         onSearchOverride={handleOnSearchOverride}
+                        onToggleRomanizedLyrics={handleOnToggleRomanizedLyrics}
                         onTranslateLyric={
                             translationApiProvider && translationApiKey
                                 ? handleOnTranslateLyric
                                 : undefined
                         }
                         onUpdateOffset={handleUpdateOffset}
+                        romanizeProxyReady={romanizeProxyReady}
                         setIndex={setIndex}
                         settingsKey={settingsKey}
+                        showRomanizedLyrics={showRomanizedLyrics}
                     />
                 </div>
             </div>

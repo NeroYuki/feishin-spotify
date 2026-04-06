@@ -10,34 +10,44 @@ import { Group } from '/@/shared/components/group/group';
 import { NumberInput } from '/@/shared/components/number-input/number-input';
 import { Select } from '/@/shared/components/select/select';
 import { Tooltip } from '/@/shared/components/tooltip/tooltip';
-import { LyricsOverride } from '/@/shared/types/domain-types';
+import { LyricSource, LyricsOverride } from '/@/shared/types/domain-types';
 
 interface LyricsActionsProps {
     hasLyrics: boolean;
     index: number;
+    isRomanizeProxyLoading: boolean;
     languages: { label: string; value: string }[];
     offsetMs: number;
     onExportLyrics: () => void;
+    onRefetchLyric: () => void;
     onRemoveLyric: () => void;
     onSearchOverride: (params: LyricsOverride) => void;
+    onToggleRomanizedLyrics: () => void;
     onTranslateLyric?: () => void;
     onUpdateOffset: (offsetMs: number) => void;
+    romanizeProxyReady: boolean;
     setIndex: (idx: number) => void;
     settingsKey?: string;
+    showRomanizedLyrics: boolean;
     synced?: boolean;
 }
 
 export const LyricsActions = ({
     hasLyrics,
     index,
+    isRomanizeProxyLoading,
     languages,
     offsetMs,
     onExportLyrics,
+    onRefetchLyric,
     onRemoveLyric,
     onSearchOverride,
+    onToggleRomanizedLyrics,
     onTranslateLyric,
     onUpdateOffset,
+    romanizeProxyReady,
     setIndex,
+    showRomanizedLyrics,
 }: LyricsActionsProps) => {
     const { t } = useTranslation();
     const currentSong = usePlayerSong();
@@ -124,6 +134,39 @@ export const LyricsActions = ({
                         }}
                         variant="subtle"
                     />
+                    {isDesktop && sources.length ? (
+                        <Button
+                            disabled={isActionsDisabled}
+                            onClick={onRefetchLyric}
+                            uppercase
+                            variant="subtle"
+                        >
+                            {t('common.refresh', { postProcess: 'sentenceCase' })}
+                        </Button>
+                    ) : null}
+                    {isDesktop && sources.includes(LyricSource.ROMANIZE_PROXY) ? (
+                        <Tooltip
+                            label={
+                                isRomanizeProxyLoading
+                                    ? t('common.loading', { postProcess: 'sentenceCase' })
+                                    : showRomanizedLyrics
+                                      ? t('common.romanized', { postProcess: 'sentenceCase' })
+                                      : t('common.romanize', { postProcess: 'sentenceCase' })
+                            }
+                            openDelay={0}
+                        >
+                            <Button
+                                disabled={isActionsDisabled || (!romanizeProxyReady && !showRomanizedLyrics)}
+                                onClick={onToggleRomanizedLyrics}
+                                uppercase
+                                variant={showRomanizedLyrics ? 'filled' : 'subtle'}
+                            >
+                                {isRomanizeProxyLoading
+                                    ? t('common.romanize', { postProcess: 'sentenceCase' }) + '…'
+                                    : t('common.romanize', { postProcess: 'sentenceCase' })}
+                            </Button>
+                        </Tooltip>
+                    ) : null}
                     {isDesktop && sources.length ? (
                         <Button
                             disabled={isActionsDisabled}

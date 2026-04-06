@@ -1,5 +1,5 @@
 import isElectron from 'is-electron';
-import { memo } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { languages } from '/@/i18n/i18n';
@@ -8,6 +8,7 @@ import {
     SettingsSection,
 } from '/@/renderer/features/settings/components/settings-section';
 import { useLyricsSettings, useSettingsStoreActions } from '/@/renderer/store';
+import { Button } from '/@/shared/components/button/button';
 import { MultiSelect } from '/@/shared/components/multi-select/multi-select';
 import { NumberInput } from '/@/shared/components/number-input/number-input';
 import { Select } from '/@/shared/components/select/select';
@@ -21,6 +22,16 @@ export const LyricSettings = memo(() => {
     const { t } = useTranslation();
     const settings = useLyricsSettings();
     const { setSettings } = useSettingsStoreActions();
+    const [isClearingCache, setIsClearingCache] = useState(false);
+
+    const handleClearLyricsCache = useCallback(async () => {
+        setIsClearingCache(true);
+        try {
+            await window.api.lyrics.clearLyricsCache();
+        } finally {
+            setIsClearingCache(false);
+        }
+    }, []);
 
     const updateSetting = (updates: Partial<typeof settings>) => {
         setSettings({
@@ -202,6 +213,61 @@ export const LyricSettings = memo(() => {
             }),
             isHidden: !isElectron(),
             title: t('setting.enableAutoTranslation', { postProcess: 'sentenceCase' }),
+        },
+        {
+            control: (
+                <TextInput
+                    onChange={(e) => {
+                        const value = e.currentTarget.value;
+                        updateSetting({ romanizeProxyApiKey: value });
+                        localSettings?.set('romanizeProxyApiKey', value);
+                    }}
+                    value={settings.romanizeProxyApiKey}
+                />
+            ),
+            description: t('setting.romanizeProxyApiKey', {
+                context: 'description',
+                postProcess: 'sentenceCase',
+            }),
+            isHidden: !isElectron(),
+            title: t('setting.romanizeProxyApiKey', { postProcess: 'sentenceCase' }),
+        },
+        {
+            control: (
+                <Switch
+                    aria-label="Prefer romanize proxy"
+                    defaultChecked={settings.preferRomanizeProxy}
+                    onChange={(e) => {
+                        const isChecked = e.currentTarget.checked;
+                        updateSetting({ preferRomanizeProxy: isChecked });
+                        localSettings?.set('preferRomanizeProxy', isChecked);
+                    }}
+                />
+            ),
+            description: t('setting.preferRomanizeProxy', {
+                context: 'description',
+                postProcess: 'sentenceCase',
+            }),
+            isHidden: !isElectron(),
+            title: t('setting.preferRomanizeProxy', { postProcess: 'sentenceCase' }),
+        },
+        {
+            control: (
+                <Button
+                    disabled={isClearingCache}
+                    onClick={handleClearLyricsCache}
+                    size="compact-md"
+                    variant="filled"
+                >
+                    {t('common.clear', { postProcess: 'sentenceCase' })}
+                </Button>
+            ),
+            description: t('setting.clearLyricsCache', {
+                context: 'description',
+                postProcess: 'sentenceCase',
+            }),
+            isHidden: !isElectron(),
+            title: t('setting.clearLyricsCache', { postProcess: 'sentenceCase' }),
         },
     ];
 

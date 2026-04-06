@@ -30,6 +30,7 @@ export type LyricsQueryResult = {
     overrideData: LyricsResponse | null;
     overrideSelection: LyricsOverride | null;
     remoteAuto: FullLyricsMetadata | null;
+    romanizeProxy: FullLyricsMetadata | null;
     selected: FullLyricsMetadata | null | StructuredLyric;
     selectedOffsetMs: number;
     selectedStructuredIndex: number;
@@ -241,6 +242,7 @@ const emptyResult = (): LyricsQueryResult => ({
     overrideData: null,
     overrideSelection: null,
     remoteAuto: null,
+    romanizeProxy: null,
     selected: null,
     selectedOffsetMs: 0,
     selectedStructuredIndex: 0,
