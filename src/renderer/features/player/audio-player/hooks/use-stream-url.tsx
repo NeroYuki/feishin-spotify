@@ -3,20 +3,27 @@ import { useEffect, useRef } from 'react';
 
 import { api } from '/@/renderer/api';
 import { TranscodingConfig } from '/@/renderer/store';
-import { QueueSong } from '/@/shared/types/domain-types';
+import { QueueSong, ServerType } from '/@/shared/types/domain-types';
 
 export function useSongUrl(
     song: QueueSong | undefined,
     current: boolean,
     transcode: TranscodingConfig,
 ): string | undefined {
+    // Spotify songs are played via the Web Playback SDK — no stream URL needed.
+    const isSpotify = song?._serverType === ServerType.SPOTIFY;
+
     const prior = useRef(['', '']);
     const shouldReusePrior = Boolean(
-        song?._serverId && current && prior.current[0] === song._uniqueId && prior.current[1],
+        song?._serverId &&
+            !isSpotify &&
+            current &&
+            prior.current[0] === song._uniqueId &&
+            prior.current[1],
     );
 
     const { data: queryStreamUrl } = useQuery({
-        enabled: Boolean(song?._serverId) && !shouldReusePrior,
+        enabled: Boolean(song?._serverId) && !shouldReusePrior && !isSpotify,
         queryFn: () =>
             api.controller.getStreamUrl({
                 apiClientProps: { serverId: song!._serverId },
@@ -57,6 +64,9 @@ export function useSongUrl(
             prior.current = ['', ''];
         }
     }, [song?._serverId]);
+
+    // Spotify playback is handled by SpotifyPlayer via the Web Playback SDK
+    if (isSpotify) return undefined;
 
     return shouldReusePrior ? prior.current[1] : queryStreamUrl;
 }

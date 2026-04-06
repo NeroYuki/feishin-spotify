@@ -32,4 +32,7 @@ export enum AppRoute {
     SEARCH = '/search/:itemType',
     SERVERS = '/servers',
     SETTINGS = '/settings',
+    SPOTIFY = '/spotify',
+    SPOTIFY_PLAYLIST_DETAIL = '/spotify/playlists/:playlistId',
+    SPOTIFY_SEARCH = '/spotify/search',
 }

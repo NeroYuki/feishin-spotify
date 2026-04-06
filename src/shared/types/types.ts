@@ -56,6 +56,7 @@ export enum Platform {
 export enum ServerType {
     JELLYFIN = 'jellyfin',
     NAVIDROME = 'navidrome',
+    SPOTIFY = 'spotify',
     SUBSONIC = 'subsonic',
 }
 

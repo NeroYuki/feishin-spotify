@@ -42,12 +42,14 @@ const localSettings = isElectron() ? window.api.localSettings : null;
 const SERVER_ICONS: Record<ServerType, string> = {
     [ServerType.JELLYFIN]: JellyfinIcon,
     [ServerType.NAVIDROME]: NavidromeIcon,
+    [ServerType.SPOTIFY]: '',
     [ServerType.SUBSONIC]: SubsonicIcon,
 };
 
 const SERVER_NAMES: Record<ServerType, string> = {
     [ServerType.JELLYFIN]: 'Jellyfin',
     [ServerType.NAVIDROME]: 'Navidrome',
+    [ServerType.SPOTIFY]: 'Spotify',
     [ServerType.SUBSONIC]: 'OpenSubsonic',
 };
 

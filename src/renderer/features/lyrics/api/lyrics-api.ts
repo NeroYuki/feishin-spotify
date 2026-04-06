@@ -155,7 +155,8 @@ export async function fetchLocalLyrics(params: {
 }): Promise<FullLyricsMetadata | null | StructuredLyric[]> {
     const { serverId, signal, song } = params;
     const server = getServerById(serverId);
-    if (!server) throw new Error('Server not found');
+    // Spotify and other non-server songs have no local lyrics server
+    if (!server) return null;
 
     if (hasFeature(server, ServerFeature.LYRICS_MULTIPLE_STRUCTURED)) {
         const subsonicLyrics = await api.controller

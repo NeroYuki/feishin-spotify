@@ -26,6 +26,7 @@ import {
 import { toast } from '/@/shared/components/toast/toast';
 import { QueueSong } from '/@/shared/types/domain-types';
 import { CrossfadeStyle, PlayerStatus, PlayerStyle } from '/@/shared/types/types';
+import { ServerType } from '/@/shared/types/domain-types';
 
 const PLAY_PAUSE_FADE_DURATION = 300;
 const PLAY_PAUSE_FADE_INTERVAL = 10;
@@ -33,7 +34,7 @@ const PLAY_PAUSE_FADE_INTERVAL = 10;
 export function WebPlayer() {
     const playerRef = useRef<null | WebPlayerEngineHandle>(null);
     const { t } = useTranslation();
-    const { num, player1, player2, status } = usePlayerData();
+    const { num, player1, player2, status, currentSong } = usePlayerData();
     const { mediaAutoNext, mediaPause, setTimestamp } = usePlayerActions();
     const playback = useMpvSettings();
     const { webAudio } = useWebAudio();
@@ -309,6 +310,10 @@ export function WebPlayer() {
         if (localPlayerStatus !== PlayerStatus.PLAYING) {
             return;
         }
+        // Spotify songs use their own position polling; skip Web Audio timestamp for them
+        if (currentSong?._serverType === ServerType.SPOTIFY) {
+            return;
+        }
 
         const interval = setInterval(() => {
             const activePlayer =
@@ -331,7 +336,7 @@ export function WebPlayer() {
         }, 500);
 
         return () => clearInterval(interval);
-    }, [localPlayerStatus, num, setTimestamp, transitionType]);
+    }, [currentSong?._serverType, localPlayerStatus, num, setTimestamp, transitionType]);
 
     const calculateReplayGain = useCallback(
         (song: QueueSong): number => {

@@ -23,6 +23,7 @@ import electronLocalShortcut from 'electron-localshortcut';
 import log from 'electron-log/main';
 import { AppImageUpdater, autoUpdater, MacUpdater, NsisUpdater } from 'electron-updater';
 import { access, constants } from 'fs';
+import { createServer } from 'http';
 import path, { join } from 'path';
 import semver from 'semver';
 
@@ -257,7 +258,10 @@ function createAlphaUpdaterInstance(): AppImageUpdater | MacUpdater | NsisUpdate
     return new NsisUpdater(ALPHA_UPDATER_CONFIG);
 }
 
-protocol.registerSchemesAsPrivileged([{ privileges: { bypassCSP: true }, scheme: 'feishin' }]);
+protocol.registerSchemesAsPrivileged([
+    { privileges: { bypassCSP: true }, scheme: 'feishin' },
+    { privileges: { bypassCSP: true }, scheme: 'feishin-dev' },
+]);
 
 process.on('uncaughtException', (error: any) => {
     console.error('Error in main process', error);
@@ -966,12 +970,22 @@ const FONT_HEADERS = [
     'font/woff2',
 ];
 
-const singleInstance = isDevelopment ? true : app.requestSingleInstanceLock();
+const singleInstance = app.requestSingleInstanceLock();
 
 if (!singleInstance) {
     app.quit();
 } else {
-    app.on('second-instance', () => {
+    app.on('second-instance', (_event, argv) => {
+        // On Windows, OAuth callbacks arrive as a second instance with the URL in argv
+        const callbackUrl = argv.find(
+            (arg) =>
+                arg.startsWith('feishin://spotify/callback') ||
+                arg.startsWith('feishin-dev://spotify/callback'),
+        );
+        if (callbackUrl) {
+            getMainWindow()?.webContents.send('spotify-auth-callback', callbackUrl);
+        }
+
         if (mainWindow) {
             if (mainWindow.isMinimized()) {
                 mainWindow.restore();
@@ -983,10 +997,64 @@ if (!singleInstance) {
         }
     });
 
+    // In dev mode, use a localhost HTTP server to catch the OAuth callback —
+    // avoids the protocol-handler conflict with the installed production app.
+    if (isDevelopment) {
+        const devCallbackServer = createServer((req, res) => {
+            if (req.url?.startsWith('/spotify/callback')) {
+                const callbackUrl = `http://127.0.0.1:27042${req.url}`;
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end('<html><body><h2>Auth complete — you can close this tab.</h2></body></html>');
+                devCallbackServer.close();
+                getMainWindow()?.webContents.send('spotify-auth-callback', callbackUrl);
+            } else {
+                res.writeHead(404);
+                res.end();
+            }
+        });
+        devCallbackServer.listen(27042, '127.0.0.1', () => {
+            console.log('[spotify] Dev OAuth callback server listening on http://127.0.0.1:27042');
+        });
+    }
+
+    // Register feishin:// (prod) as the default protocol client.
+    if (!isDevelopment) {
+        const registered = isWindows()
+            ? app.setAsDefaultProtocolClient('feishin', process.execPath, [
+                  path.resolve(process.argv[1] ?? ''),
+              ])
+            : app.setAsDefaultProtocolClient('feishin');
+        console.log('[spotify] setAsDefaultProtocolClient(feishin) =', registered);
+    }
+
+    // macOS fires open-url before the app is ready — register early
+    app.on('open-url', (_event, url) => {
+        if (
+            url.startsWith('feishin://spotify/callback') ||
+            url.startsWith('feishin-dev://spotify/callback')
+        ) {
+            getMainWindow()?.webContents.send('spotify-auth-callback', url);
+        }
+    });
+
     app.whenReady()
         .then(() => {
-            protocol.handle('feishin', async (request) => {
-                const filePath = `file:${request.url.slice('feishin:'.length)}`;
+
+            const handleFeishinUrl = async (request: Request): Promise<Response> => {
+                const requestUrl = request.url;
+
+                // Intercept Spotify OAuth callback before treating URL as a file path
+                if (
+                    requestUrl.startsWith('feishin://spotify/callback') ||
+                    requestUrl.startsWith('feishin-dev://spotify/callback')
+                ) {
+                    getMainWindow()?.webContents.send('spotify-auth-callback', requestUrl);
+                    return new Response(null, { status: 200 });
+                }
+
+                // Strip scheme prefix to get the file path (works for both feishin: and feishin-dev:)
+                const schemeEnd = requestUrl.indexOf('://');
+                const filePath = `file://${requestUrl.slice(schemeEnd + 3)}`;
                 const response = await net.fetch(filePath);
                 const contentType = response.headers.get('content-type');
 
@@ -1000,12 +1068,35 @@ if (!singleInstance) {
                 }
 
                 return response;
-            });
+            };
+
+            protocol.handle('feishin', handleFeishinUrl);
+            if (isDevelopment) {
+                protocol.handle('feishin-dev', handleFeishinUrl);
+            }
 
             createWindow();
             if (store.get('window_enable_tray', true)) {
                 createTray();
             }
+
+            // Handle Spotify OAuth callback delivered as a startup argument
+            // (Windows: new instance launched with the deep-link URL in argv;
+            //  also covers the case where second-instance lock is skipped in dev mode)
+            const startupCallback = process.argv.find(
+                (arg) =>
+                    arg.startsWith('feishin://spotify/callback') ||
+                    arg.startsWith('feishin-dev://spotify/callback'),
+            );
+            if (startupCallback) {
+                // Delay until the renderer is ready to receive IPC
+                mainWindow?.webContents.once('did-finish-load', () => {
+                    getMainWindow()?.webContents.send('spotify-auth-callback', startupCallback);
+                });
+            }
+
+            // macOS: handle deep-links fired while the app is already running
+            // (early registration above handles pre-ready; this handles post-ready)
             app.on('activate', () => {
                 // On macOS it's common to re-create a window in the app when the
                 // dock icon is clicked and there are no other windows open.

@@ -7,7 +7,7 @@ import { queryKeys } from '/@/renderer/api/query-keys';
 import { usePlayerEvents } from '/@/renderer/features/player/audio-player/hooks/use-player-events';
 import { updateQueueSong } from '/@/renderer/store/player.store';
 import { LogCategory, logFn } from '/@/renderer/utils/logger';
-import { QueueSong, SongDetailQuery } from '/@/shared/types/domain-types';
+import { QueueSong, ServerType, SongDetailQuery } from '/@/shared/types/domain-types';
 
 export const useUpdateCurrentSong = () => {
     const queryClient = useQueryClient();
@@ -17,6 +17,11 @@ export const useUpdateCurrentSong = () => {
             const currentSong = properties.song;
 
             if (!currentSong?.id || !currentSong?._serverId) {
+                return;
+            }
+
+            // Spotify songs are managed externally — no server route for getSongDetail
+            if (currentSong._serverType === ServerType.SPOTIFY) {
                 return;
             }
 

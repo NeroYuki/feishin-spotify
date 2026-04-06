@@ -98,6 +98,9 @@ export const useScrobble = () => {
 
             if (!currentSong?.id || currentStatus !== PlayerStatus.PLAYING) return;
 
+            // Spotify handles its own scrobbling — skip to avoid duplicate scrobbles
+            if (currentSong._serverType === ServerType.SPOTIFY) return;
+
             const currentTime = properties.timestamp;
             const previousTime = prev.timestamp;
 

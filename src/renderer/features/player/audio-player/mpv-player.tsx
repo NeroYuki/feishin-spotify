@@ -14,6 +14,7 @@ import {
     usePlayerStore,
     usePlayerVolume,
 } from '/@/renderer/store';
+import { ServerType } from '/@/shared/types/domain-types';
 import { PlayerStatus } from '/@/shared/types/types';
 
 const PLAY_PAUSE_FADE_DURATION = 300;
@@ -153,6 +154,10 @@ export function MpvPlayer() {
         if (localPlayerStatus !== PlayerStatus.PLAYING || !hasCurrentSong) {
             return;
         }
+        // Spotify songs use their own position polling; skip MPV timestamp for them
+        if (currentSong?._serverType === ServerType.SPOTIFY) {
+            return;
+        }
 
         const interval = setInterval(async () => {
             if (!mpvPlayer) {
@@ -170,7 +175,7 @@ export function MpvPlayer() {
         }, 500);
 
         return () => clearInterval(interval);
-    }, [hasCurrentSong, localPlayerStatus, setTimestamp]);
+    }, [currentSong?._serverType, hasCurrentSong, localPlayerStatus, setTimestamp]);
 
     return (
         <MpvPlayerEngine

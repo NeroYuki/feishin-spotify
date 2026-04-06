@@ -79,13 +79,19 @@ const SERVER_TYPES: Record<ServerType, ServerDetails> = {
         icon: NavidromeIcon,
         name: 'Navidrome',
     },
+    [ServerType.SPOTIFY]: {
+        icon: '',
+        name: 'Spotify',
+    },
     [ServerType.SUBSONIC]: {
         icon: SubsonicIcon,
         name: 'OpenSubsonic',
     },
 };
 
-const ALL_SERVERS = Object.keys(SERVER_TYPES).map((serverType) => {
+const ALL_SERVERS = Object.keys(SERVER_TYPES)
+    .filter((serverType) => serverType !== ServerType.SPOTIFY)
+    .map((serverType) => {
     const info = SERVER_TYPES[serverType];
     return {
         label: <ServerIconWithLabel icon={info.icon} label={info.name} />,

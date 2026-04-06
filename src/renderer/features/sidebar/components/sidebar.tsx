@@ -42,6 +42,7 @@ import { ImageUnloader } from '/@/shared/components/image/image';
 import { ScrollArea } from '/@/shared/components/scroll-area/scroll-area';
 import { Text } from '/@/shared/components/text/text';
 import { Tooltip } from '/@/shared/components/tooltip/tooltip';
+import { AppRoute } from '/@/renderer/router/routes';
 import { ExplicitStatus, LibraryItem } from '/@/shared/types/domain-types';
 import { Platform } from '/@/shared/types/types';
 
@@ -117,7 +118,7 @@ export const Sidebar = () => {
                         item: styles.accordionItem,
                         root: styles.accordionRoot,
                     }}
-                    defaultValue={['library', 'collections', 'playlists']}
+                    defaultValue={['library', 'collections', 'playlists', 'spotify']}
                     multiple
                 >
                     <Accordion.Item value="library">
@@ -148,6 +149,27 @@ export const Sidebar = () => {
                             <SidebarSharedPlaylistList />
                         </>
                     )}
+                    <Accordion.Item value="spotify">
+                        <Accordion.Control>
+                            <Text fw={500} variant="secondary">
+                                Spotify
+                            </Text>
+                        </Accordion.Control>
+                        <Accordion.Panel>
+                            <SidebarItem to={AppRoute.SPOTIFY}>
+                                <Group gap="md">
+                                    <Icon icon="list" size="md" />
+                                    My Playlists
+                                </Group>
+                            </SidebarItem>
+                            <SidebarItem to={AppRoute.SPOTIFY_SEARCH}>
+                                <Group gap="md">
+                                    <Icon icon="search" size="md" />
+                                    Search Spotify
+                                </Group>
+                            </SidebarItem>
+                        </Accordion.Panel>
+                    </Accordion.Item>
                 </Accordion>
             </ScrollArea>
             <AnimatePresence initial={false} mode="popLayout">

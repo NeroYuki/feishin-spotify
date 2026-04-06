@@ -25,6 +25,7 @@ import {
     useIsRadioActive,
 } from '/@/renderer/features/radio/hooks/use-radio-player';
 import { RemoteHook } from '/@/renderer/features/remote/hooks/use-remote';
+import { SpotifyPlayer } from '/@/renderer/features/spotify/player/spotify-player';
 import { VisualizerSystemAudioBridgeHook } from '/@/renderer/features/visualizer/components/visualizer-system-audio-bridge';
 import {
     updateQueueFavorites,
@@ -268,6 +269,7 @@ const AudioPlayersContent = ({
         <>
             {playbackType === PlayerType.WEB && <WebPlayer />}
             {playbackType === PlayerType.LOCAL && <MpvPlayer />}
+            <SpotifyPlayer />
         </>
     );
 };

@@ -268,7 +268,12 @@ export const useDiscordRpc = () => {
 
                 if (discordSettings.showServerImage && song) {
                     if (song._uniqueId === currentSong?._uniqueId && imageUrlRef.current) {
-                        if (song._serverType === ServerType.JELLYFIN) {
+                        if (song._serverType === ServerType.SPOTIFY) {
+                            // Spotify songs carry the album image URL directly on the Song object
+                            if (song.imageUrl) {
+                                activity.largeImageKey = song.imageUrl;
+                            }
+                        } else if (song._serverType === ServerType.JELLYFIN) {
                             activity.largeImageKey = imageUrlRef.current;
                         } else if (
                             song._serverType === ServerType.NAVIDROME ||

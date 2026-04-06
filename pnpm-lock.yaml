@@ -27,6 +27,9 @@ importers:
       '@electron-toolkit/utils':
         specifier: ^4.0.0
         version: 4.0.0(electron@39.8.6)
+      '@lox-audioserver/node-librespot':
+        specifier: ^0.3.4
+        version: 0.3.4
       '@mantine/colors-generator':
         specifier: ^8.3.18
         version: 8.3.18(chroma-js@3.1.2)
@@ -1432,6 +1435,10 @@ packages:
 
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
+
+  '@lox-audioserver/node-librespot@0.3.4':
+    resolution: {integrity: sha512-kkMcvSHt8k/G1ZPWh2uHsghVJTvilt/oyErX3fsqsArLzPvEEpY7fQGqGPs6F19oW6JdW9s/xNEmd5xY+gz6mw==}
+    engines: {node: '>=18'}
 
   '@malept/cross-spawn-promise@2.0.0':
     resolution: {integrity: sha512-1DpKU0Z5ThltBwjNySMC14g0CkbyhCaz9FkhxqNsZI6uAPJXFS8cMXlBKo26FJ8ZuW6S9GCMcR9IO5k2X5/9Fg==}
@@ -4237,6 +4244,10 @@ packages:
 
   node-addon-api@1.7.2:
     resolution: {integrity: sha512-ibPK3iA+vaY1eEjESkQkM0BbCqFOaZMiXRTtdB0u7b4djtY6JnsjvPdUHVMg6xQt3B8fpTTWHI9A+ADjM9frzg==}
+
+  node-addon-api@8.7.0:
+    resolution: {integrity: sha512-9MdFxmkKaOYVTV+XVRG8ArDwwQ77XIgIPyKASB1k3JPq3M8fGQQQE3YpMOrKm6g//Ktx8ivZr8xo1Qmtqub+GA==}
+    engines: {node: ^18 || ^20 || >= 21}
 
   node-api-version@0.2.1:
     resolution: {integrity: sha512-2xP/IGGMmmSQpI1+O/k72jF/ykvZ89JeuKX3TLJAYPDVLUalrshrLHkeVcCCZqG/eEa635cr8IBYzgnDvM2O8Q==}
@@ -7097,6 +7108,10 @@ snapshots:
       keyv: 5.6.0
 
   '@keyv/serialize@1.1.1': {}
+
+  '@lox-audioserver/node-librespot@0.3.4':
+    dependencies:
+      node-addon-api: 8.7.0
 
   '@malept/cross-spawn-promise@2.0.0':
     dependencies:
@@ -10221,6 +10236,8 @@ snapshots:
 
   node-addon-api@1.7.2:
     optional: true
+
+  node-addon-api@8.7.0: {}
 
   node-api-version@0.2.1:
     dependencies:
