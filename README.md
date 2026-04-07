@@ -31,6 +31,11 @@
 
 Rewrite of [Sonixd](https://github.com/jeffvli/sonixd).
 
+feat. vibe-coded spotify integration. Support direct playback via librespot, basic search, playlist, info page, saving items implementation. Additionally support a private lyric server that support romanization of lyric
+
+<img width="1919" height="1024" alt="image" src="https://github.com/user-attachments/assets/92b2a1fb-5e6f-4d5d-adce-3d4720c2b5ea" />
+
+
 ## Features
 
 - [x] MPV player backend
