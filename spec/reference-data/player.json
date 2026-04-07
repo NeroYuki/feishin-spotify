@@ -1,0 +1,48 @@
+{
+    "device": {
+        "id": "cf618d8632ac150cdbe916a0761d32e7f5bc88ba",
+        "is_active": true,
+        "is_private_session": false,
+        "is_restricted": false,
+        "name": "Feishin",
+        "supports_volume": true,
+        "type": "Speaker",
+        "volume_percent": 100
+    },
+    "shuffle_state": false,
+    "smart_shuffle": false,
+    "repeat_state": "off",
+    "is_playing": true,
+    "timestamp": 1775538411586,
+    "context": null,
+    "progress_ms": 3628,
+    "item": {
+        "album": "<omitted>",
+        "artists": "<omitted>",
+        "disc_number": 1,
+        "duration_ms": 320173,
+        "explicit": false,
+        "external_ids": {
+            "isrc": "JPS809904521"
+        },
+        "external_urls": {
+            "spotify": "https://open.spotify.com/track/4wiLmTFR8isZOazySyF0Oe"
+        },
+        "href": "https://api.spotify.com/v1/tracks/4wiLmTFR8isZOazySyF0Oe",
+        "id": "4wiLmTFR8isZOazySyF0Oe",
+        "is_local": false,
+        "name": "Y/M/K/M",
+        "popularity": 14,
+        "preview_url": null,
+        "track_number": 8,
+        "type": "track",
+        "uri": "spotify:track:4wiLmTFR8isZOazySyF0Oe"
+    },
+    "currently_playing_type": "track",
+    "actions": {
+        "disallows": {
+            "resuming": true,
+            "skipping_prev": true
+        }
+    }
+}

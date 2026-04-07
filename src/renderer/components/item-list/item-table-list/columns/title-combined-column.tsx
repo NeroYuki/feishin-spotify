@@ -23,8 +23,9 @@ import { usePlayButtonBehavior } from '/@/renderer/store';
 import { ExplicitIndicator } from '/@/shared/components/explicit-indicator/explicit-indicator';
 import { Icon } from '/@/shared/components/icon/icon';
 import { Text } from '/@/shared/components/text/text';
-import { Folder, LibraryItem, QueueSong } from '/@/shared/types/domain-types';
+import { Folder, LibraryItem, QueueSong, ServerType } from '/@/shared/types/domain-types';
 import { Play } from '/@/shared/types/types';
+import spotifyIcon from '../../../../../../assets/icons/spotify.svg';
 
 export const DefaultTitleCombinedColumn = (props: ItemTableListInnerColumn) => {
     const rowItem = props.getRowItem?.(props.rowIndex) ?? (props.data as any[])[props.rowIndex];
@@ -312,6 +313,19 @@ export const QueueSongTitleCombinedColumn = (props: ItemTableListInnerColumn) =>
                         {...titleLinkProps}
                     >
                         <ExplicitIndicator explicitStatus={song?.explicitStatus} />
+                        {song?._serverType === ServerType.SPOTIFY && (
+                            <img
+                                alt="Spotify"
+                                src={spotifyIcon}
+                                style={{
+                                    height: '11px',
+                                    marginInlineEnd: '3px',
+                                    opacity: 0.8,
+                                    verticalAlign: 'middle',
+                                    width: '11px',
+                                }}
+                            />
+                        )}
                         {row.name as string}
                         {song?.trackSubtitle && props.itemType !== LibraryItem.QUEUE_SONG && (
                             <Text

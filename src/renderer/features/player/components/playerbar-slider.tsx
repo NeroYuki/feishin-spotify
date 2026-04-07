@@ -10,10 +10,13 @@ import {
     usePlayerSong,
     usePlayerTimestamp,
 } from '/@/renderer/store';
+import { useSpotifyIsBuffering } from '/@/renderer/features/spotify/store/spotify-playback.store';
+import { ServerType } from '/@/shared/types/domain-types';
 import { PlayerbarSliderType, usePlayerbarSlider } from '/@/renderer/store/settings.store';
 import { Slider, SliderProps } from '/@/shared/components/slider/slider';
 import { Spinner } from '/@/shared/components/spinner/spinner';
 import { Text } from '/@/shared/components/text/text';
+import { Tooltip } from '/@/shared/components/tooltip/tooltip';
 import { PlaybackSelectors } from '/@/shared/constants/playback-selectors';
 
 const PlayerbarWaveform = lazy(() =>
@@ -37,21 +40,35 @@ export const PlayerbarSlider = () => {
     const { setShowTimeRemaining } = useAppStoreActions();
 
     const isWaveform = playerbarSlider?.type === PlayerbarSliderType.WAVEFORM;
+    const isSpotifySong = currentSong?._serverType === ServerType.SPOTIFY;
+    const isBuffering = useSpotifyIsBuffering();
+    const showBuffering = isSpotifySong && isBuffering;
 
     return (
         <>
             <div className={styles.sliderContainer}>
                 <div className={styles.sliderValueWrapper}>
-                    <Text
-                        className={PlaybackSelectors.elapsedTime}
-                        fw={600}
-                        isMuted
-                        isNoSelect
-                        size="xs"
-                        style={{ userSelect: 'none' }}
-                    >
-                        {formattedTime}
-                    </Text>
+                    {showBuffering ? (
+                        <Tooltip label="Buffering…" position="top" withinPortal>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Spinner size={11} />
+                                <Text fw={600} isMuted isNoSelect size="xs" style={{ userSelect: 'none' }}>
+                                    {formattedTime}
+                                </Text>
+                            </span>
+                        </Tooltip>
+                    ) : (
+                        <Text
+                            className={PlaybackSelectors.elapsedTime}
+                            fw={600}
+                            isMuted
+                            isNoSelect
+                            size="xs"
+                            style={{ userSelect: 'none' }}
+                        >
+                            {formattedTime}
+                        </Text>
+                    )}
                 </div>
                 <div className={styles.sliderWrapper}>
                     {isWaveform ? (

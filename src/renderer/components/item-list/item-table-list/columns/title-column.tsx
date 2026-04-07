@@ -14,7 +14,8 @@ import {
 import { useIsActiveRow } from '/@/renderer/components/item-list/item-table-list/item-table-list-context';
 import { ExplicitIndicator } from '/@/shared/components/explicit-indicator/explicit-indicator';
 import { Text } from '/@/shared/components/text/text';
-import { LibraryItem, QueueSong } from '/@/shared/types/domain-types';
+import { LibraryItem, QueueSong, ServerType } from '/@/shared/types/domain-types';
+import spotifyIcon from '../../../../../../assets/icons/spotify.svg';
 
 const TitleColumnBase = (props: ItemTableListInnerColumn) => {
     const { itemType } = props;
@@ -115,6 +116,19 @@ function QueueSongTitleColumn(props: ItemTableListInnerColumn) {
                     {...titleLinkProps}
                 >
                     <ExplicitIndicator explicitStatus={song?.explicitStatus} />
+                    {song?._serverType === ServerType.SPOTIFY && (
+                        <img
+                            alt="Spotify"
+                            src={spotifyIcon}
+                            style={{
+                                height: '11px',
+                                marginInlineEnd: '3px',
+                                opacity: 0.8,
+                                verticalAlign: 'middle',
+                                width: '11px',
+                            }}
+                        />
+                    )}
                     {row}
                     {song?.trackSubtitle && props.itemType !== LibraryItem.QUEUE_SONG && (
                         <Text

@@ -5,12 +5,14 @@ import { createWithEqualityFn } from 'zustand/traditional';
 interface SpotifyPlaybackState {
     deviceId: null | string;
     isActive: boolean;
+    isBuffering: boolean;
     isReady: boolean;
 }
 
 interface SpotifyPlaybackSlice extends SpotifyPlaybackState {
     actions: {
         reset: () => void;
+        setBuffering: (isBuffering: boolean) => void;
         setDeviceReady: (deviceId: string) => void;
         setIsActive: (isActive: boolean) => void;
     };
@@ -19,6 +21,7 @@ interface SpotifyPlaybackSlice extends SpotifyPlaybackState {
 const INITIAL_STATE: SpotifyPlaybackState = {
     deviceId: null,
     isActive: false,
+    isBuffering: false,
     isReady: false,
 };
 
@@ -30,6 +33,11 @@ export const useSpotifyPlaybackStore = createWithEqualityFn<SpotifyPlaybackSlice
                 reset: () => {
                     set((state) => {
                         Object.assign(state, INITIAL_STATE);
+                    });
+                },
+                setBuffering: (isBuffering) => {
+                    set((state) => {
+                        state.isBuffering = isBuffering;
                     });
                 },
                 setDeviceReady: (deviceId) => {
@@ -50,4 +58,5 @@ export const useSpotifyPlaybackStore = createWithEqualityFn<SpotifyPlaybackSlice
 );
 
 export const useSpotifyDeviceId = () => useSpotifyPlaybackStore((state) => state.deviceId);
+export const useSpotifyIsBuffering = () => useSpotifyPlaybackStore((state) => state.isBuffering);
 export const useSpotifyIsReady = () => useSpotifyPlaybackStore((state) => state.isReady);

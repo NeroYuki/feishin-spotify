@@ -35,7 +35,8 @@ import { Text } from '/@/shared/components/text/text';
 import { Tooltip } from '/@/shared/components/tooltip/tooltip';
 import { PlaybackSelectors } from '/@/shared/constants/playback-selectors';
 import { useHotkeys } from '/@/shared/hooks/use-hotkeys';
-import { LibraryItem } from '/@/shared/types/domain-types';
+import { LibraryItem, ServerType } from '/@/shared/types/domain-types';
+import spotifyIcon from '../../../../../assets/icons/spotify.svg';
 
 export const LeftControls = () => {
     const { t } = useTranslation();
@@ -214,6 +215,19 @@ export const LeftControls = () => {
                         <>
                             <div className={styles.lineItem} onClick={stopPropagation}>
                                 <Group align="center" gap="xs" wrap="nowrap">
+                                    {currentSong?._serverType === ServerType.SPOTIFY && (
+                                        <img
+                                            alt="Streaming via Spotify"
+                                            src={spotifyIcon}
+                                            style={{
+                                                flexShrink: 0,
+                                                height: '14px',
+                                                opacity: 0.85,
+                                                width: '14px',
+                                            }}
+                                            title="Streaming via Spotify"
+                                        />
+                                    )}
                                     <Text
                                         className={PlaybackSelectors.songTitle}
                                         component={Link}

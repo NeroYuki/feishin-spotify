@@ -10,7 +10,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useWebAudio } from '/@/renderer/features/player/hooks/use-webaudio';
-import { usePlayerStatus } from '/@/renderer/store';
+import { useMpvSettings, usePlayerStatus } from '/@/renderer/store';
 import { PlayerStatus } from '/@/shared/types/types';
 
 const SAMPLE_RATE = 44100;
@@ -19,16 +19,18 @@ const BYTES_PER_SAMPLE = 2; // s16le
 
 /**
  * Seconds of audio to pre-buffer at startup or after a stall/resume.
- * Larger values reduce tearing from IPC jitter at the cost of pause latency.
+ * 2 s gives librespot plenty of lead time to decode the next few seconds before
+ * Web Audio catches up, which absorbs the frequent initial-download stalls seen
+ * on slower connections or high-bitrate tracks.
  */
-const TARGET_BUFFER_S = 0.3;
+const TARGET_BUFFER_S = 2.0;
 
 /**
  * Minimum seconds ahead of AudioContext.currentTime that a chunk must be
  * scheduled. Prevents scheduling so close to "now" that IPC delivery jitter
  * causes audible gaps between adjacent chunks.
  */
-const MIN_LOOKAHEAD_S = 0.05;
+const MIN_LOOKAHEAD_S = 0.15;
 
 function s16leToFloat32(view: DataView, channel: 0 | 1, frameCount: number): Float32Array<ArrayBuffer> {
     const out = new Float32Array(new ArrayBuffer(frameCount * 4));
@@ -53,7 +55,32 @@ export function useSpotifyPcmPlayer(active: boolean, songId?: null | string) {
     /** Last applied volume (0–1) so pause-mute/resume-unmute restores the correct level. */
     const volumeRef = useRef(1);
     const playerStatus = usePlayerStatus();
+    const { replayGainFallbackDB, replayGainMode, replayGainPreampDB } = useMpvSettings();
+    // Normalization factor applied to gains[0] for Spotify playback — mirrors the
+    // fallback calculation in web-player.tsx so Spotify volume matches music-server
+    // tracks that have no explicit ReplayGain tag.
+    const spotifyNormRef = useRef(0.5);
+    useEffect(() => {
+        if (replayGainMode === 'no') {
+            // User disabled ReplayGain entirely — don't adjust Spotify either.
+            spotifyNormRef.current = 1.0;
+            return;
+        }
+        if (replayGainFallbackDB == null) {
+            // No fallback configured. Apply a −6 dB default so Spotify (which
+            // streams at its internal loudness target) roughly matches a
+            // music-server library whose tracks carry per-track ReplayGain tags.
+            spotifyNormRef.current = 0.5;
+            return;
+        }
+        const preAmp = replayGainPreampDB ?? 0;
+        const g = 10 ** ((replayGainFallbackDB + preAmp) / 20);
+        spotifyNormRef.current = isNaN(g) ? 0.5 : g;
+    }, [replayGainFallbackDB, replayGainMode, replayGainPreampDB]);
     const prevSongIdRef = useRef(songId);
+    /** Keep a ref so song-change flush can read current status without adding it to song deps. */
+    const playerStatusRef = useRef(playerStatus);
+    playerStatusRef.current = playerStatus;
 
     // Create / tear down the Spotify gain node. Prefer the shared webAudio context
     // so the visualizer can analyse the Spotify PCM audio. Fall back to a private
@@ -78,11 +105,16 @@ export function useSpotifyPcmPlayer(active: boolean, songId?: null | string) {
         let ownContext = false;
 
         if (webAudio?.context && webAudio.context.state !== 'closed') {
-            // Use the shared AudioContext so the visualizer can see Spotify audio
+            // Use the shared AudioContext so the timeline is synchronised with
+            // the rest of the player.
             ctx = webAudio.context;
             gain = ctx.createGain();
-            // Connect into webAudio.gains[0] so the visualizer picks it up
-            gain.connect(webAudio.gains[0] ?? ctx.destination);
+            // Route through gains[0] so the visualizer pipeline sees the Spotify
+            // PCM.  Normalization is applied HERE on the private intermediate gain
+            // node — gains[0] is NOT touched so the music-server player can manage
+            // it independently without interference from Spotify playback.
+            gain.connect(webAudio.gains[0]);
+            gain.gain.setValueAtTime(volumeRef.current * spotifyNormRef.current, ctx.currentTime);
         } else {
             // Fallback: own AudioContext (visualizer won't see it, but audio plays)
             ctx = new AudioContext({ sampleRate: SAMPLE_RATE });
@@ -135,6 +167,16 @@ export function useSpotifyPcmPlayer(active: boolean, songId?: null | string) {
         pendingSourcesRef.current.clear();
         // Reset timeline so first new-track chunk schedules with MIN_LOOKAHEAD_S
         nextStartTimeRef.current = 0;
+        // Defensively restore gain: if the previous song ended with a pause-flush
+        // (gain = 0) and the user immediately selected a new track while the status
+        // flipped back to PLAYING, the gain needs to be re-enabled here.
+        if (playerStatusRef.current === PlayerStatus.PLAYING) {
+            const gain = gainNodeRef.current;
+            if (gain) {
+                gain.gain.cancelScheduledValues(gain.context.currentTime);
+                gain.gain.setValueAtTime(volumeRef.current * spotifyNormRef.current, gain.context.currentTime);
+            }
+        }
     }, [active, songId]);
 
     // Restore volume when playback resumes so audio is audible again.
@@ -144,7 +186,7 @@ export function useSpotifyPcmPlayer(active: boolean, songId?: null | string) {
         const gain = gainNodeRef.current;
         if (gain) {
             gain.gain.cancelScheduledValues(gain.context.currentTime);
-            gain.gain.setValueAtTime(volumeRef.current, gain.context.currentTime);
+            gain.gain.setValueAtTime(volumeRef.current * spotifyNormRef.current, gain.context.currentTime);
         }
     }, [active, playerStatus]);
 
@@ -156,6 +198,13 @@ export function useSpotifyPcmPlayer(active: boolean, songId?: null | string) {
             const ctx = audioCtxRef.current;
             const gain = gainNodeRef.current;
             if (!ctx || !gain) return;
+
+            // Resume the AudioContext if it was suspended (e.g. first Spotify track
+            // played before any browser-initiated audio interaction, or after a
+            // long period of inactivity on some OS configurations).
+            if (ctx.state !== 'running') {
+                ctx.resume().catch(() => {});
+            }
 
             // IPC deserializes Buffer as a plain Uint8Array — wrap in DataView for
             // portable int16 reading without Node.js Buffer methods.
@@ -190,7 +239,8 @@ export function useSpotifyPcmPlayer(active: boolean, songId?: null | string) {
             if (!gain) return;
             const level = pct / 100;
             volumeRef.current = level;
-            gain.gain.setTargetAtTime(level, gain.context.currentTime, 0.05);
+            // Apply normalization factor so librespot volume events don't bypass it.
+            gain.gain.setTargetAtTime(level * spotifyNormRef.current, gain.context.currentTime, 0.05);
         });
 
         return () => {
