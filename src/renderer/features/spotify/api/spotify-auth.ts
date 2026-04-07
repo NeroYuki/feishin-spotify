@@ -28,6 +28,9 @@ const SPOTIFY_SCOPES = [
     'playlist-read-collaborative',
     'streaming',
     'user-library-read',
+    'user-library-modify',
+    'user-follow-read',
+    'user-follow-modify',
     'user-read-playback-state',
     'user-modify-playback-state',
 ].join(' ');

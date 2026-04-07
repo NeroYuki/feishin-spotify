@@ -13,13 +13,26 @@ export interface SpotifySimplifiedArtist {
 }
 
 export interface SpotifySimplifiedAlbum {
+    album_type?: string;
     artists: SpotifySimplifiedArtist[];
     id: string;
     images: SpotifyImage[];
     name: string;
     release_date: string;
     release_date_precision: 'day' | 'month' | 'year';
+    total_tracks?: number;
     uri: string;
+}
+
+export interface SpotifySearchArtist extends SpotifySimplifiedArtist {
+    genres: string[];
+    images: SpotifyImage[];
+    popularity: number;
+}
+
+export interface SpotifySavedTrack {
+    added_at: string;
+    track: SpotifyTrack;
 }
 
 export interface SpotifyTrack {
@@ -88,11 +101,47 @@ export interface SpotifyTokenResponse {
 }
 
 export interface SpotifySearchResults {
-    albums?: SpotifyPaging<SpotifySimplifiedAlbum & { tracks?: SpotifyPaging<SpotifyTrack> }>;
-    artists?: SpotifyPaging<
-        SpotifySimplifiedArtist & { genres: string[]; images: SpotifyImage[]; popularity: number }
-    >;
+    albums?: SpotifyPaging<SpotifySimplifiedAlbum>;
+    artists?: SpotifyPaging<SpotifySearchArtist>;
+    playlists?: SpotifyPaging<SpotifyPlaylist>;
     tracks?: SpotifyPaging<SpotifyTrack>;
+}
+
+export interface SpotifyFullArtist {
+    followers: { total: number };
+    genres: string[];
+    id: string;
+    images: SpotifyImage[];
+    name: string;
+    popularity: number;
+    uri: string;
+}
+
+export interface SpotifyFullAlbum {
+    album_type: string;
+    artists: SpotifySimplifiedArtist[];
+    id: string;
+    images: SpotifyImage[];
+    name: string;
+    release_date: string;
+    release_date_precision: 'day' | 'month' | 'year';
+    total_tracks: number;
+    tracks: SpotifyPaging<SpotifySimplifiedTrack>;
+    uri: string;
+}
+
+export interface SpotifySimplifiedTrack {
+    artists: SpotifySimplifiedArtist[];
+    disc_number: number;
+    duration_ms: number;
+    explicit: boolean;
+    id: string;
+    is_local: boolean;
+    is_playable?: boolean;
+    name: string;
+    preview_url: null | string;
+    track_number: number;
+    uri: string;
 }
 
 // Application-level Spotify auth state

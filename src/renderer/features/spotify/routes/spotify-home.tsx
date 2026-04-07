@@ -1,6 +1,7 @@
 import { generatePath } from 'react-router';
 
 import { SpotifyConnectButton } from '/@/renderer/features/spotify/components/spotify-connect-button';
+import { SpotifyLikeButton } from '/@/renderer/features/spotify/components/spotify-like-button';
 import { useSpotifyPlaylists } from '/@/renderer/features/spotify/hooks/use-spotify-playlists';
 import { useSpotifyIsAuthenticated } from '/@/renderer/features/spotify/store/spotify-auth.store';
 import { AnimatedPage } from '/@/renderer/features/shared/components/animated-page';
@@ -14,6 +15,8 @@ import { Stack } from '/@/shared/components/stack/stack';
 import { Text } from '/@/shared/components/text/text';
 import { Playlist } from '/@/shared/types/domain-types';
 import { Link } from 'react-router';
+import { ItemImage } from '/@/renderer/components/item-image/item-image';
+import { LibraryItem } from '/@/shared/types/domain-types';
 
 interface PlaylistCardProps {
     playlist: Playlist;
@@ -22,30 +25,44 @@ interface PlaylistCardProps {
 const PlaylistCard = ({ playlist }: PlaylistCardProps) => {
     const to = generatePath(AppRoute.SPOTIFY_PLAYLIST_DETAIL, { playlistId: playlist.id });
     return (
-        <Button
-            component={Link}
-            justify="flex-start"
-            style={{
-                height: 'auto',
-                padding: '8px 12px',
-                textAlign: 'left',
-                width: '100%',
-            }}
-            to={to}
-            variant="subtle"
-        >
-            <Stack gap={2} style={{ minWidth: 0, width: '100%' }}>
-                <Text overflow="hidden">{playlist.name}</Text>
-                {playlist.description && (
-                    <Text isMuted overflow="hidden" size="xs">
-                        {playlist.description}
-                    </Text>
-                )}
-                <Text isMuted size="xs">
-                    {playlist.songCount ?? 0} tracks
-                </Text>
-            </Stack>
-        </Button>
+        <Group align="center" gap={4} wrap="nowrap" style={{ width: '100%' }}>
+            <Button
+                component={Link}
+                justify="flex-start"
+                style={{
+                    flex: 1,
+                    height: 'auto',
+                    minWidth: 0,
+                    padding: '8px 12px',
+                    textAlign: 'left',
+                }}
+                to={to}
+                variant="subtle"
+            >
+                <Group gap="sm" wrap="nowrap" style={{ width: '100%' }}>
+                    <ItemImage
+                        enableDebounce={false}
+                        enableViewport={false}
+                        id={playlist.id}
+                        imageContainerProps={{ style: { borderRadius: 4, flexShrink: 0, height: 64, width: 64 } }}
+                        itemType={LibraryItem.PLAYLIST}
+                        src={playlist.imageUrl}
+                    />
+                    <Stack gap={2} style={{ minWidth: 0, width: '100%' }}>
+                        <Text overflow="hidden">{playlist.name}</Text>
+                        {playlist.description && (
+                            <Text isMuted overflow="hidden" size="xs">
+                                {playlist.description}
+                            </Text>
+                        )}
+                        <Text isMuted size="xs">
+                            {playlist.songCount ?? 0} tracks
+                        </Text>
+                    </Stack>
+                </Group>
+            </Button>
+            <SpotifyLikeButton uri={`spotify:playlist:${playlist.id}`} />
+        </Group>
     );
 };
 

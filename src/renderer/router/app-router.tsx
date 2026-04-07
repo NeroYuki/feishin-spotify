@@ -94,6 +94,18 @@ const SpotifySearchRoute = lazy(
     () => import('/@/renderer/features/spotify/routes/spotify-search'),
 );
 
+const SpotifyArtistDetailRoute = lazy(
+    () => import('/@/renderer/features/spotify/routes/spotify-artist-detail'),
+);
+
+const SpotifyAlbumDetailRoute = lazy(
+    () => import('/@/renderer/features/spotify/routes/spotify-album-detail'),
+);
+
+const SpotifyLikedTracksRoute = lazy(
+    () => import('/@/renderer/features/spotify/routes/spotify-liked-tracks'),
+);
+
 const SettingsRoute = lazy(() => import('/@/renderer/features/settings/routes/settings-route'));
 
 const LazyLyricsSettingsContextModal = lazy(() =>
@@ -305,6 +317,18 @@ export const AppRouter = () => {
                                         <Route
                                             element={<SpotifySearchRoute />}
                                             path={AppRoute.SPOTIFY_SEARCH}
+                                        />
+                                        <Route
+                                            element={<SpotifyArtistDetailRoute />}
+                                            path={AppRoute.SPOTIFY_ARTIST_DETAIL}
+                                        />
+                                        <Route
+                                            element={<SpotifyAlbumDetailRoute />}
+                                            path={AppRoute.SPOTIFY_ALBUM_DETAIL}
+                                        />
+                                        <Route
+                                            element={<SpotifyLikedTracksRoute />}
+                                            path={AppRoute.SPOTIFY_LIKED_TRACKS}
                                         />
                                         <Route
                                             element={<PlaylistDetailSongListRoute />}

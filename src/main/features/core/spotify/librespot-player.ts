@@ -44,6 +44,8 @@ export class LibrespotPlayer extends EventEmitter {
     private volume = 100;
     private readyCb: ReadyCallback | null = null;
     private eventCb: EventCallback | null = null;
+    /** Serializes concurrent init() calls so only one runs at a time. */
+    private initChain: Promise<void> = Promise.resolve();
 
     onReady(cb: ReadyCallback) {
         this.readyCb = cb;
@@ -70,6 +72,13 @@ export class LibrespotPlayer extends EventEmitter {
     }
 
     async init(accessToken: string, _clientId?: string): Promise<void> {
+        // Chain new init onto the previous one so concurrent calls are serialized.
+        // Each call waits for the current chain to settle before running.
+        this.initChain = this.initChain.then(() => this._doInit(accessToken)).catch(() => {});
+        return this.initChain;
+    }
+
+    private async _doInit(accessToken: string): Promise<void> {
         await this.stop();
 
         // Spotify expects device IDs to be 40-char hex strings (same format as

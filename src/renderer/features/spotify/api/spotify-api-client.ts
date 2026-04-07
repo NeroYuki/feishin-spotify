@@ -1,10 +1,14 @@
 import { useSpotifyAuthStore } from '/@/renderer/features/spotify/store/spotify-auth.store';
 import {
+    SpotifyFullAlbum,
+    SpotifyFullArtist,
     SpotifyPaging,
     SpotifyPlaylist,
     SpotifyPlaylistTrack,
     SpotifySearchResults,
+    SpotifySavedTrack,
     SpotifyTokenResponse,
+    SpotifyTrack,
     SpotifyUserProfile,
 } from '/@/renderer/features/spotify/api/spotify-types';
 import { refreshSpotifyToken } from '/@/renderer/features/spotify/api/spotify-auth';
@@ -25,7 +29,7 @@ class SpotifyApiClient {
     private async request<T>(
         endpoint: string,
         options?: RequestInit,
-        isRetry = false,
+        retryCount = 0,
     ): Promise<T> {
         const token = useSpotifyAuthStore.getState().accessToken;
 
@@ -42,10 +46,19 @@ class SpotifyApiClient {
             },
         });
 
-        if (response.status === 401 && !isRetry) {
+        if (response.status === 401 && retryCount === 0) {
             // Attempt a single token refresh then retry
             await refreshSpotifyToken();
-            return this.request<T>(endpoint, options, true);
+            return this.request<T>(endpoint, options, retryCount + 1);
+        }
+
+        // Rate limited — honour Retry-After and retry up to 3 times
+        if (response.status === 429 && retryCount < 3) {
+            const retryAfterSec = parseInt(response.headers.get('Retry-After') ?? '1', 10);
+            const delayMs = Math.min(retryAfterSec, 30) * 1000;
+            console.warn(`[Spotify] 429 on ${endpoint} — retrying after ${delayMs}ms`);
+            await new Promise<void>((r) => setTimeout(r, delayMs));
+            return this.request<T>(endpoint, options, retryCount + 1);
         }
 
         if (!response.ok) {
@@ -94,7 +107,7 @@ class SpotifyApiClient {
 
     search(
         query: string,
-        types: Array<'album' | 'artist' | 'track'>,
+        types: Array<'album' | 'artist' | 'playlist' | 'track'>,
         limit = 20,
         offset = 0,
     ): Promise<SpotifySearchResults> {
@@ -102,6 +115,69 @@ class SpotifyApiClient {
         const encoded = encodeURIComponent(query);
         return this.request<SpotifySearchResults>(
             `/search?q=${encoded}&type=${typeParam}&limit=${limit}&offset=${offset}`,
+        );
+    }
+
+    getArtist(artistId: string): Promise<SpotifyFullArtist> {
+        return this.request<SpotifyFullArtist>(`/artists/${artistId}`);
+    }
+
+    getArtistTopTracks(artistId: string): Promise<{ tracks: SpotifyTrack[] }> {
+        return this.request<{ tracks: SpotifyTrack[] }>(
+            `/artists/${artistId}/top-tracks?market=from_token`,
+        );
+    }
+
+    getAlbum(albumId: string): Promise<SpotifyFullAlbum> {
+        return this.request<SpotifyFullAlbum>(`/albums/${albumId}`);
+    }
+
+    getAlbumTracks(
+        albumId: string,
+        limit = 50,
+        offset = 0,
+    ): Promise<SpotifyPaging<SpotifyTrack>> {
+        return this.request<SpotifyPaging<SpotifyTrack>>(
+            `/albums/${albumId}/tracks?limit=${limit}&offset=${offset}&market=from_token`,
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Library / Follow endpoints
+    // -----------------------------------------------------------------------
+
+    getSavedTracks(limit = 50, offset = 0): Promise<SpotifyPaging<SpotifySavedTrack>> {
+        return this.request<SpotifyPaging<SpotifySavedTrack>>(
+            `/me/tracks?limit=${limit}&offset=${offset}&market=from_token`,
+        );
+    }
+
+    saveLibraryItems(uris: string[]): Promise<void> {
+        const encoded = uris.map(encodeURIComponent).join(',');
+        return this.request<void>(`/me/library?uris=${encoded}`, { method: 'PUT' });
+    }
+
+    removeLibraryItems(uris: string[]): Promise<void> {
+        const encoded = uris.map(encodeURIComponent).join(',');
+        return this.request<void>(`/me/library?uris=${encoded}`, { method: 'DELETE' });
+    }
+
+    checkLibraryContains(uris: string[]): Promise<boolean[]> {
+        const encoded = uris.map(encodeURIComponent).join(',');
+        return this.request<boolean[]>(`/me/library/contains?uris=${encoded}`);
+    }
+
+    followArtist(artistId: string): Promise<void> {
+        return this.request<void>(`/me/following?type=artist&ids=${artistId}`, { method: 'PUT' });
+    }
+
+    unfollowArtist(artistId: string): Promise<void> {
+        return this.request<void>(`/me/following?type=artist&ids=${artistId}`, { method: 'DELETE' });
+    }
+
+    checkFollowingArtist(artistId: string): Promise<boolean> {
+        return this.request<boolean[]>(`/me/following/contains?type=artist&ids=${artistId}`).then(
+            (res) => Array.isArray(res) ? res[0] ?? false : false,
         );
     }
 

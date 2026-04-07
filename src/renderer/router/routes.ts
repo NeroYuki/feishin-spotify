@@ -33,6 +33,9 @@ export enum AppRoute {
     SERVERS = '/servers',
     SETTINGS = '/settings',
     SPOTIFY = '/spotify',
+    SPOTIFY_ALBUM_DETAIL = '/spotify/albums/:albumId',
+    SPOTIFY_ARTIST_DETAIL = '/spotify/artists/:artistId',
     SPOTIFY_PLAYLIST_DETAIL = '/spotify/playlists/:playlistId',
+    SPOTIFY_LIKED_TRACKS = '/spotify/liked',
     SPOTIFY_SEARCH = '/spotify/search',
 }

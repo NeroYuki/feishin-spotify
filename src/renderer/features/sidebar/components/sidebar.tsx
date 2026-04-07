@@ -168,6 +168,12 @@ export const Sidebar = () => {
                                     Search Spotify
                                 </Group>
                             </SidebarItem>
+                            <SidebarItem to={AppRoute.SPOTIFY_LIKED_TRACKS}>
+                                <Group gap="md">
+                                    <Icon icon="favorite" size="md" />
+                                    Liked Songs
+                                </Group>
+                            </SidebarItem>
                         </Accordion.Panel>
                     </Accordion.Item>
                 </Accordion>

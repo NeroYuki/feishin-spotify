@@ -20,6 +20,19 @@ import { PlayerStatus } from '/@/shared/types/types';
 const POSITION_POLL_MS = 1000;
 
 /**
+ * Retries `fn` once after `delayMs` if it throws. Useful for transient Spotify
+ * API errors such as 404 (device transitioning) or 202 (retry requested).
+ */
+async function withRetry<T>(fn: () => Promise<T>, delayMs = 400): Promise<T> {
+    try {
+        return await fn();
+    } catch {
+        await new Promise<void>((r) => setTimeout(r, delayMs));
+        return fn();
+    }
+}
+
+/**
  * SpotifyPlayer — headless component that manages Spotify playback.
  *
  * In Electron: uses @lox-audioserver/node-librespot running in the main process
@@ -40,7 +53,8 @@ export function SpotifyPlayer() {
     const positionIntervalRef = useRef<null | ReturnType<typeof setInterval>>(null);
 
     // Web Audio PCM playback (Electron — librespot streams PCM via IPC)
-    useSpotifyPcmPlayer(isElectron() && isAuthenticated && isPremium);
+    // Pass currentSong?.id so the PCM buffer is flushed on every track change.
+    useSpotifyPcmPlayer(isElectron() && isAuthenticated && isPremium, currentSong?.id);
 
     // -----------------------------------------------------------------------
     // Init / teardown librespot Connect device (Electron only)
@@ -106,6 +120,8 @@ export function SpotifyPlayer() {
     // True once play(uri) has been sent for the current song — prevents
     // resumePlayback from firing before the track is loaded on the device.
     const hasIssuedPlayRef = useRef(false);
+    // Queues a pause/resume command that arrived before the device was ready.
+    const pendingControlRef = useRef<'pause' | 'resume' | null>(null);
 
     // Reset when song changes
     useEffect(() => {
@@ -138,17 +154,38 @@ export function SpotifyPlayer() {
 
     useEffect(() => {
         if (!isSpotifySong) return;
-        if (!isReadyRef.current || !deviceIdRef.current) return;
+
+        if (!isReadyRef.current || !deviceIdRef.current) {
+            // Queue the command so it fires once the device becomes ready.
+            if (playerStatus === PlayerStatus.PAUSED) pendingControlRef.current = 'pause';
+            else if (playerStatus === PlayerStatus.PLAYING && hasIssuedPlayRef.current) pendingControlRef.current = 'resume';
+            return;
+        }
 
         if (playerStatus === PlayerStatus.PLAYING) {
             if (!hasIssuedPlayRef.current) return;
-            spotifyApiClient.resumePlayback(deviceIdRef.current)
+            withRetry(() => spotifyApiClient.resumePlayback(deviceIdRef.current!))
                 .catch((err) => console.error('[SpotifyPlayer] resumePlayback error:', err));
         } else if (playerStatus === PlayerStatus.PAUSED) {
-            spotifyApiClient.pausePlayback(deviceIdRef.current)
+            withRetry(() => spotifyApiClient.pausePlayback(deviceIdRef.current!))
                 .catch((err) => console.error('[SpotifyPlayer] pausePlayback error:', err));
         }
     }, [playerStatus, isSpotifySong]);
+
+    // Execute any command that was queued while the device was still initialising.
+    useEffect(() => {
+        if (!isReady || !deviceId) return;
+        const cmd = pendingControlRef.current;
+        if (!cmd) return;
+        pendingControlRef.current = null;
+        if (cmd === 'pause') {
+            withRetry(() => spotifyApiClient.pausePlayback(deviceId))
+                .catch((err) => console.error('[SpotifyPlayer] delayed pausePlayback error:', err));
+        } else if (cmd === 'resume' && hasIssuedPlayRef.current) {
+            withRetry(() => spotifyApiClient.resumePlayback(deviceId))
+                .catch((err) => console.error('[SpotifyPlayer] delayed resumePlayback error:', err));
+        }
+    }, [isReady, deviceId]);
 
     // -----------------------------------------------------------------------
     // Volume sync → librespot
