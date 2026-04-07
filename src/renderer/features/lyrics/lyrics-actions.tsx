@@ -134,16 +134,6 @@ export const LyricsActions = ({
                         }}
                         variant="subtle"
                     />
-                    {isDesktop && sources.length ? (
-                        <Button
-                            disabled={isActionsDisabled}
-                            onClick={onRefetchLyric}
-                            uppercase
-                            variant="subtle"
-                        >
-                            {t('common.refresh', { postProcess: 'sentenceCase' })}
-                        </Button>
-                    ) : null}
                     {isDesktop && sources.includes(LyricSource.ROMANIZE_PROXY) ? (
                         <Tooltip
                             label={
@@ -170,7 +160,7 @@ export const LyricsActions = ({
                     {isDesktop && sources.length ? (
                         <Button
                             disabled={isActionsDisabled}
-                            onClick={onRemoveLyric}
+                            onClick={hasLyrics ? onRemoveLyric : onRefetchLyric}
                             uppercase
                             variant="subtle"
                         >

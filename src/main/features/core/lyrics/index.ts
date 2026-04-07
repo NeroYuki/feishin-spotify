@@ -225,7 +225,12 @@ const getRemoteLyrics = async (song: Song) => {
 };
 
 const searchRemoteLyrics = async (params: LyricSearchQuery) => {
-    const allSearchResults = await searchAllSources(params);
+    // Romanize Proxy is slow (up to 30s timeout) and handled via dedicated background fetch;
+    // exclude it here so it doesn't block lrclib/netease results in the search modal.
+    const sources = (store.get('lyrics', []) as LyricSource[]).filter(
+        (s) => s !== LyricSource.ROMANIZE_PROXY,
+    );
+    const allSearchResults = await searchAllSources(params, sources);
 
     const results: Record<LyricSource, InternetProviderLyricSearchResponse[]> = {
         [LyricSource.GENIUS]: [],
@@ -257,8 +262,8 @@ ipcMain.handle('lyric-cache-clear', () => {
 
 const romanizeAbortControllers = new Map<string, AbortController>();
 
-ipcMain.handle('lyric-romanize-proxy-fetch', async (_event, songId: string, params: LyricSearchQuery) => {
-    // Cancel any existing fetch for this song slot (keyed on a shared key so we cancel across songs)
+ipcMain.handle('lyric-romanize-proxy-fetch', async (_event, songId: string, params: LyricSearchQuery, apiKey: string) => {
+    // Cancel any existing in-flight fetch before starting a new one
     for (const [key, controller] of romanizeAbortControllers) {
         controller.abort();
         romanizeAbortControllers.delete(key);
@@ -266,7 +271,7 @@ ipcMain.handle('lyric-romanize-proxy-fetch', async (_event, songId: string, para
     const controller = new AbortController();
     romanizeAbortControllers.set(songId, controller);
     try {
-        const result = await fetchRomanizeProxySong(params, controller.signal);
+        const result = await fetchRomanizeProxySong(params, controller.signal, apiKey);
         return result;
     } finally {
         romanizeAbortControllers.delete(songId);

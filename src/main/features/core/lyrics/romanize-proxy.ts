@@ -130,10 +130,9 @@ export async function query(
 export async function fetchForSong(
     params: LyricSearchQuery,
     signal: AbortSignal,
+    apiKey: string,
 ): Promise<InternetProviderLyricResponse | null> {
     if (!params.name) return null;
-
-    const apiKey = store.get('romanizeProxyApiKey', '') as string;
     if (!apiKey) return null;
 
     const result = await callApi(params, apiKey, signal);

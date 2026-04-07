@@ -120,7 +120,7 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
             name: currentSong.name,
         };
 
-        window.api.lyrics.fetchRomanizeProxyLyrics(songId, params).then((result) => {
+        window.api.lyrics.fetchRomanizeProxyLyrics(songId, params, romanizeProxyApiKey).then((result) => {
             if (!result) {
                 setIsRomanizeProxyLoading(false);
                 return;
@@ -196,7 +196,7 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         }
         return baseSynced;
     }, [showRomanizedLyrics, romanizeProxyLyrics, baseSynced, preferLocalLyrics, data?.local]);
-    
+
     const displayLyrics = isLyricsDisabled ? null : lyrics;
 
     const currentOffsetMs = useMemo(() => {

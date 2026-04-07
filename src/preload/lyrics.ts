@@ -34,8 +34,9 @@ const clearLyricsCache = (): Promise<void> => {
 const fetchRomanizeProxyLyrics = (
     songId: string,
     params: LyricSearchQuery,
+    apiKey: string,
 ): Promise<InternetProviderLyricResponse | null> => {
-    return ipcRenderer.invoke('lyric-romanize-proxy-fetch', songId, params);
+    return ipcRenderer.invoke('lyric-romanize-proxy-fetch', songId, params, apiKey);
 };
 
 const cancelRomanizeProxyFetch = (songId: string): Promise<void> => {
