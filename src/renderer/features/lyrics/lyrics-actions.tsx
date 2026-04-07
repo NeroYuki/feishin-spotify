@@ -174,7 +174,9 @@ export const LyricsActions = ({
                             uppercase
                             variant="subtle"
                         >
-                            {t('common.clear', { postProcess: 'sentenceCase' })}
+                            {hasLyrics
+                                ? t('common.clear', { postProcess: 'sentenceCase' })
+                                : t('common.refresh', { postProcess: 'sentenceCase' })}
                         </Button>
                     ) : null}
                 </Group>
