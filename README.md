@@ -31,6 +31,12 @@
 
 Rewrite of [Sonixd](https://github.com/jeffvli/sonixd).
 
+feat. vibe-coded spotify integration. Support direct playback via librespot, basic search, playlist, info page, saving items implementation. Additionally support a private lyric server that support romanization of lyric
+
+<img width="1919" height="1024" alt="image" src="https://github.com/user-attachments/assets/92b2a1fb-5e6f-4d5d-adce-3d4720c2b5ea" />
+
+> NOTE: The Spotify integration is a "Bring-your-own-key" implementation, you need to build from source with `VITE_SPOTIFY_CLIENT_ID` env var being your Spotify Developer API Client ID, after that you can go through the OAuth flow to enable the feature
+
 ## Features
 
 - [x] MPV player backend
