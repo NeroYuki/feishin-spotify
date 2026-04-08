@@ -106,6 +106,10 @@ const SpotifyLikedTracksRoute = lazy(
     () => import('/@/renderer/features/spotify/routes/spotify-liked-tracks'),
 );
 
+const SpotifyEveryNoiseRoute = lazy(
+    () => import('/@/renderer/features/spotify/routes/spotify-everynoise'),
+);
+
 const SettingsRoute = lazy(() => import('/@/renderer/features/settings/routes/settings-route'));
 
 const LazyLyricsSettingsContextModal = lazy(() =>
@@ -329,6 +333,10 @@ export const AppRouter = () => {
                                         <Route
                                             element={<SpotifyLikedTracksRoute />}
                                             path={AppRoute.SPOTIFY_LIKED_TRACKS}
+                                        />
+                                        <Route
+                                            element={<SpotifyEveryNoiseRoute />}
+                                            path={AppRoute.SPOTIFY_EVERYNOISE}
                                         />
                                         <Route
                                             element={<PlaylistDetailSongListRoute />}

@@ -65,6 +65,9 @@ const config: UserConfig = {
                 localsConvention: 'camelCase',
             },
         },
+        // Serve the data/ folder as public assets so spotify_genres.json and
+        // spotify_genres_artists_top50.json are accessible at the root URL.
+        publicDir: resolve('data'),
         plugins: [createReactPlugin(), ViteEjsPlugin({ web: false })],
         resolve: {
             alias: {

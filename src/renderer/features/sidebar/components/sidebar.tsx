@@ -174,6 +174,12 @@ export const Sidebar = () => {
                                     Liked Songs
                                 </Group>
                             </SidebarItem>
+                            <SidebarItem to={AppRoute.SPOTIFY_EVERYNOISE}>
+                                <Group gap="md">
+                                    <Icon icon="layoutGrid" size="md" />
+                                    Genre Map
+                                </Group>
+                            </SidebarItem>
                         </Accordion.Panel>
                     </Accordion.Item>
                 </Accordion>

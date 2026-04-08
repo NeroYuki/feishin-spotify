@@ -132,6 +132,10 @@ class SpotifyApiClient {
         return this.request<SpotifyFullAlbum>(`/albums/${albumId}`);
     }
 
+    getTrack(trackId: string): Promise<SpotifyTrack> {
+        return this.request<SpotifyTrack>(`/tracks/${trackId}?market=from_token`);
+    }
+
     getAlbumTracks(
         albumId: string,
         limit = 50,
