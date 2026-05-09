@@ -5,9 +5,12 @@ import { useTranslation } from 'react-i18next';
 
 import i18n from '/@/i18n/i18n';
 import { api } from '/@/renderer/api';
+import { audioMuseAIClient } from '/@/renderer/api/audiomuse-ai/audiomuse-ai-client';
 import { queryClient } from '/@/renderer/lib/react-query';
 import { getServerById, useAuthStoreActions } from '/@/renderer/store';
+import { Button } from '/@/shared/components/button/button';
 import { Checkbox } from '/@/shared/components/checkbox/checkbox';
+import { Divider } from '/@/shared/components/divider/divider';
 import { Group } from '/@/shared/components/group/group';
 import { Icon } from '/@/shared/components/icon/icon';
 import { ModalButton } from '/@/shared/components/modal/model-shared';
@@ -47,9 +50,29 @@ export const EditServerForm = ({ isUpdate, onCancel, password, server }: EditSer
     const { updateServer } = useAuthStoreActions();
     const focusTrapRef = useFocusTrap();
     const [isLoading, setIsLoading] = useState(false);
+    const [isTestingAudioMuse, setIsTestingAudioMuse] = useState(false);
+
+    const handleTestAudioMuseConnection = async () => {
+        const url = form.values.audioMuseAIUrl?.trim().replace(/\/$/, '');
+        if (!url) {
+            toast.error({ message: 'Enter an AudioMuse-AI server URL first.' });
+            return;
+        }
+        setIsTestingAudioMuse(true);
+        try {
+            await audioMuseAIClient.ping({ baseUrl: url, token: form.values.audioMuseAIToken?.trim() ?? '' });
+            toast.success({ message: 'AudioMuse-AI server is reachable.' });
+        } catch (err: any) {
+            toast.error({ message: err?.message ?? 'Could not connect to AudioMuse-AI server.' });
+        } finally {
+            setIsTestingAudioMuse(false);
+        }
+    };
 
     const form = useForm({
         initialValues: {
+            audioMuseAIToken: server.audioMuseAIToken || '',
+            audioMuseAIUrl: server.audioMuseAIUrl || '',
             isAdmin: server?.isAdmin,
             legacyAuth: false,
             name: server?.name,
@@ -160,6 +183,9 @@ export const EditServerForm = ({ isUpdate, onCancel, password, server }: EditSer
             if (values.preferRemoteUrl !== undefined) {
                 serverItem.preferRemoteUrl = values.preferRemoteUrl;
             }
+
+            serverItem.audioMuseAIUrl = values.audioMuseAIUrl?.trim().replace(/\/$/, '') || undefined;
+            serverItem.audioMuseAIToken = values.audioMuseAIToken?.trim() || undefined;
 
             updateServer(server.id, serverItem);
             toast.success({
@@ -303,6 +329,28 @@ export const EditServerForm = ({ isUpdate, onCancel, password, server }: EditSer
                         })}
                     />
                 )}
+                <Divider label="AudioMuse-AI (optional)" labelPosition="center" />
+                <TextInput
+                    label="AudioMuse-AI Server URL"
+                    placeholder="http://localhost:8000"
+                    rightSection={form.isDirty('audioMuseAIUrl') && <ModifiedFieldIndicator />}
+                    {...form.getInputProps('audioMuseAIUrl')}
+                />
+                <PasswordInput
+                    label="AudioMuse-AI API Token"
+                    placeholder="Leave empty if auth is disabled"
+                    {...form.getInputProps('audioMuseAIToken')}
+                />
+                <Group justify="flex-start">
+                    <Button
+                        loading={isTestingAudioMuse}
+                        size="xs"
+                        variant="default"
+                        onClick={handleTestAudioMuseConnection}
+                    >
+                        Test AudioMuse-AI Connection
+                    </Button>
+                </Group>
                 <Group justify="flex-end">
                     <ModalButton onClick={onCancel}>{t('common.cancel')}</ModalButton>
                     <ModalButton loading={isLoading} type="submit" variant="filled">

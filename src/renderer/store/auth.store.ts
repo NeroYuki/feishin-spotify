@@ -118,6 +118,8 @@ export const useCurrentServer = () =>
         }
 
         return {
+            audioMuseAIToken: state.currentServer?.audioMuseAIToken,
+            audioMuseAIUrl: state.currentServer?.audioMuseAIUrl,
             features: state.currentServer?.features,
             id: state.currentServer?.id,
             isAdmin: state.currentServer?.isAdmin,

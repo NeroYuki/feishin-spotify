@@ -85,6 +85,8 @@ export interface SavedCollection {
 }
 
 export type ServerListItem = {
+    audioMuseAIToken?: string;
+    audioMuseAIUrl?: string;
     features?: ServerFeatures;
     id: string;
     isAdmin?: boolean;

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { api } from '/@/renderer/api';
+import { audioMuseAIClient } from '/@/renderer/api/audiomuse-ai/audiomuse-ai-client';
 import {
     isLegacyAuth,
     isServerLock,
@@ -14,6 +15,7 @@ import NavidromeIcon from '/@/renderer/features/servers/assets/navidrome.png';
 import SubsonicIcon from '/@/renderer/features/servers/assets/opensubsonic.png';
 import { IgnoreCorsSslSwitches } from '/@/renderer/features/servers/components/ignore-cors-ssl-switches';
 import { useAuthStoreActions, useServerList } from '/@/renderer/store';
+import { Button } from '/@/shared/components/button/button';
 import { Checkbox } from '/@/shared/components/checkbox/checkbox';
 import { Divider } from '/@/shared/components/divider/divider';
 import { Group } from '/@/shared/components/group/group';
@@ -103,7 +105,25 @@ export const AddServerForm = ({ onCancel }: AddServerFormProps) => {
     const { t } = useTranslation();
     const focusTrapRef = useFocusTrap(true);
     const [isLoading, setIsLoading] = useState(false);
+    const [isTestingAudioMuse, setIsTestingAudioMuse] = useState(false);
     const { addServer, setCurrentServer } = useAuthStoreActions();
+
+    const handleTestAudioMuseConnection = async () => {
+        const url = form.values.audioMuseAIUrl?.trim().replace(/\/$/, '');
+        if (!url) {
+            toast.error({ message: 'Enter an AudioMuse-AI server URL first.' });
+            return;
+        }
+        setIsTestingAudioMuse(true);
+        try {
+            await audioMuseAIClient.ping({ baseUrl: url, token: form.values.audioMuseAIToken?.trim() ?? '' });
+            toast.success({ message: 'AudioMuse-AI server is reachable.' });
+        } catch (err: any) {
+            toast.error({ message: err?.message ?? 'Could not connect to AudioMuse-AI server.' });
+        } finally {
+            setIsTestingAudioMuse(false);
+        }
+    };
     const serverList = useServerList();
     const { servers: discovered } = useAutodiscovery();
 
@@ -111,6 +131,8 @@ export const AddServerForm = ({ onCancel }: AddServerFormProps) => {
 
     const form = useForm({
         initialValues: {
+            audioMuseAIToken: '',
+            audioMuseAIUrl: '',
             legacyAuth: isLegacyAuth(),
             name:
                 (localSettings ? localSettings.env.SERVER_NAME : window.SERVER_NAME) || 'My Server',
@@ -197,6 +219,14 @@ export const AddServerForm = ({ onCancel }: AddServerFormProps) => {
 
             if (data.ndCredential !== undefined) {
                 serverItem.ndCredential = data.ndCredential;
+            }
+
+            if (values.audioMuseAIUrl?.trim()) {
+                serverItem.audioMuseAIUrl = values.audioMuseAIUrl.trim().replace(/\/$/, '');
+            }
+
+            if (values.audioMuseAIToken?.trim()) {
+                serverItem.audioMuseAIToken = values.audioMuseAIToken.trim();
             }
 
             addServer(serverItem);
@@ -350,6 +380,27 @@ export const AddServerForm = ({ onCancel }: AddServerFormProps) => {
                             })}
                         />
                     )}
+                    <Divider label="AudioMuse-AI (optional)" labelPosition="center" />
+                    <TextInput
+                        label="AudioMuse-AI Server URL"
+                        placeholder="http://localhost:8000"
+                        {...form.getInputProps('audioMuseAIUrl')}
+                    />
+                    <PasswordInput
+                        label="AudioMuse-AI API Token"
+                        placeholder="Leave empty if auth is disabled"
+                        {...form.getInputProps('audioMuseAIToken')}
+                    />
+                    <Group justify="flex-start">
+                        <Button
+                            loading={isTestingAudioMuse}
+                            size="xs"
+                            variant="default"
+                            onClick={handleTestAudioMuseConnection}
+                        >
+                            Test AudioMuse-AI Connection
+                        </Button>
+                    </Group>
                     {isElectron() && (
                         <>
                             <Divider />

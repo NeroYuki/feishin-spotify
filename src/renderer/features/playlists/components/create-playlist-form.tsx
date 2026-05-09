@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { t } from 'i18next';
 import { MouseEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,8 +7,15 @@ import {
     PlaylistQueryBuilder,
     PlaylistQueryBuilderRef,
 } from '/@/renderer/features/playlists/components/playlist-query-builder';
+import {
+    SonicAnalysisPlaylistForm,
+    SonicAnalysisPlaylistFormRef,
+} from '/@/renderer/features/playlists/components/sonic-analysis-playlist-form';
+import { useAddToPlaylist } from '/@/renderer/features/playlists/mutations/add-to-playlist-mutation';
 import { useCreatePlaylist } from '/@/renderer/features/playlists/mutations/create-playlist-mutation';
 import { convertQueryGroupToNDQuery } from '/@/renderer/features/playlists/utils';
+import { queryKeys } from '/@/renderer/api/query-keys';
+import { infiniteLoaderDataQueryKey } from '/@/renderer/components/item-list/helpers/item-list-infinite-loader';
 import { useCurrentServer } from '/@/renderer/store';
 import { hasFeature } from '/@/shared/api/utils';
 import { Group } from '/@/shared/components/group/group';
@@ -22,6 +30,7 @@ import { toast } from '/@/shared/components/toast/toast';
 import { useForm } from '/@/shared/hooks/use-form';
 import {
     CreatePlaylistBody,
+    LibraryItem,
     ServerListItem,
     ServerType,
     SongListSort,
@@ -34,9 +43,12 @@ interface CreatePlaylistFormProps {
 
 export const CreatePlaylistForm = ({ onCancel }: CreatePlaylistFormProps) => {
     const { t } = useTranslation();
+    const queryClient = useQueryClient();
     const mutation = useCreatePlaylist({});
+    const addToPlaylistMutation = useAddToPlaylist({});
     const server = useCurrentServer();
     const queryBuilderRef = useRef<PlaylistQueryBuilderRef>(null);
+    const sonicRef = useRef<SonicAnalysisPlaylistFormRef>(null);
 
     const form = useForm<CreatePlaylistBody>({
         initialValues: {
@@ -46,22 +58,23 @@ export const CreatePlaylistForm = ({ onCancel }: CreatePlaylistFormProps) => {
         },
     });
     const [isSmartPlaylist, setIsSmartPlaylist] = useState(false);
+    const [isSonicPlaylist, setIsSonicPlaylist] = useState(false);
     const [step, setStep] = useState<1 | 2>(1);
+    const [sonicResults, setSonicResults] = useState<{ item_id: string }[]>([]);
+
+    const hasSonicAI = Boolean(server?.audioMuseAIUrl);
 
     const handleSubmit = form.onSubmit((values) => {
         if (!server) return;
 
-        // If creating a smart playlist and we're on the first step, advance to step 2
-        // to configure the query instead of submitting immediately.
-        if (isSmartPlaylist && step === 1) {
+        // Step 1 → Step 2 for smart or sonic playlists
+        if ((isSmartPlaylist || isSonicPlaylist) && step === 1) {
             setStep(2);
             return;
         }
 
         const smartPlaylist = queryBuilderRef.current?.getFilters();
 
-        // New syntax: sortBy is now a single string with comma-separated fields and +/- prefix
-        // e.g., "+album,-year" means sort by album ascending, then year descending
         const sortValue =
             isSmartPlaylist && smartPlaylist?.extraFilters?.sortBy?.[0]
                 ? smartPlaylist.extraFilters.sortBy[0]
@@ -73,7 +86,6 @@ export const CreatePlaylistForm = ({ onCancel }: CreatePlaylistFormProps) => {
                       ...convertQueryGroupToNDQuery(smartPlaylist.filters),
                       limit: smartPlaylist.extraFilters.limit,
                       limitPercent: smartPlaylist.extraFilters.limitPercent,
-                      // order field is now optional - sort direction is embedded in sort field
                       sort: sortValue || '+dateAdded',
                   }
                 : undefined;
@@ -93,18 +105,72 @@ export const CreatePlaylistForm = ({ onCancel }: CreatePlaylistFormProps) => {
                         title: t('error.genericError', { postProcess: 'sentenceCase' }),
                     });
                 },
-                onSuccess: () => {
-                    toast.success({
-                        message: t('form.createPlaylist.success', { postProcess: 'sentenceCase' }),
-                    });
-                    onCancel();
+                onSuccess: (data) => {
+                    // For sonic playlists, add the generated songs after playlist creation
+                    if (isSonicPlaylist && data?.id && sonicResults.length > 0) {
+                        addToPlaylistMutation.mutate(
+                            {
+                                apiClientProps: { serverId: server.id },
+                                body: { songId: sonicResults.map((t) => t.item_id) },
+                                query: { id: data.id },
+                            },
+                            {
+                                onError: (err) => {
+                                    toast.error({
+                                        message: err.message,
+                                        title: t('error.genericError', {
+                                            postProcess: 'sentenceCase',
+                                        }),
+                                    });
+                                    onCancel();
+                                },
+                                onSuccess: () => {
+                                    queryClient.invalidateQueries({
+                                        exact: false,
+                                        queryKey: queryKeys.playlists.root(server.id),
+                                    });
+                                    queryClient.invalidateQueries({
+                                        exact: false,
+                                        queryKey: infiniteLoaderDataQueryKey(server.id, LibraryItem.PLAYLIST),
+                                    });
+                                    toast.success({
+                                        message: t('form.createPlaylist.success', {
+                                            postProcess: 'sentenceCase',
+                                        }),
+                                    });
+                                    onCancel();
+                                },
+                            },
+                        );
+                    } else {
+                        toast.success({
+                            message: t('form.createPlaylist.success', {
+                                postProcess: 'sentenceCase',
+                            }),
+                        });
+                        onCancel();
+                    }
                 },
             },
         );
     });
 
     const isPublicDisplayed = hasFeature(server, ServerFeature.PUBLIC_PLAYLIST);
-    const isSubmitDisabled = !form.values.name || mutation.isPending;
+    const isBusy = mutation.isPending || addToPlaylistMutation.isPending;
+    const isSubmitDisabled =
+        !form.values.name ||
+        isBusy ||
+        (isSonicPlaylist && step === 2 && sonicResults.length === 0);
+
+    const submitLabel = () => {
+        if ((isSmartPlaylist || isSonicPlaylist) && step === 1) {
+            return t('common.confirm', { postProcess: 'sentenceCase' });
+        }
+        if (isSonicPlaylist && step === 2) {
+            return `Create with ${sonicResults.length} songs`;
+        }
+        return t('common.create');
+    };
 
     return (
         <form onSubmit={handleSubmit}>
@@ -151,12 +217,26 @@ export const CreatePlaylistForm = ({ onCancel }: CreatePlaylistFormProps) => {
                                         onChange={(e) => {
                                             const next = e.currentTarget.checked;
                                             setIsSmartPlaylist(next);
-                                            if (!next) {
-                                                setStep(1);
-                                            }
+                                            if (next) setIsSonicPlaylist(false);
+                                            if (!next) setStep(1);
                                         }}
                                     />
                                 )}
+                            {hasSonicAI && (
+                                <Switch
+                                    checked={isSonicPlaylist}
+                                    label="Sonic Analysis Playlist"
+                                    onChange={(e) => {
+                                        const next = e.currentTarget.checked;
+                                        setIsSonicPlaylist(next);
+                                        if (next) setIsSmartPlaylist(false);
+                                        if (!next) {
+                                            setStep(1);
+                                            setSonicResults([]);
+                                        }
+                                    }}
+                                />
+                            )}
                         </Group>
                     </>
                 )}
@@ -174,8 +254,17 @@ export const CreatePlaylistForm = ({ onCancel }: CreatePlaylistFormProps) => {
                     </Stack>
                 )}
 
+                {isSonicPlaylist && step === 2 && (
+                    <Stack pt="1rem">
+                        <SonicAnalysisPlaylistForm
+                            ref={sonicRef}
+                            onResultsChange={(tracks) => setSonicResults(tracks)}
+                        />
+                    </Stack>
+                )}
+
                 <Group justify="flex-end">
-                    {isSmartPlaylist && step === 2 && (
+                    {(isSmartPlaylist || isSonicPlaylist) && step === 2 && (
                         <ModalButton onClick={() => setStep(1)} px="2xl" uppercase variant="subtle">
                             Back
                         </ModalButton>
@@ -185,13 +274,11 @@ export const CreatePlaylistForm = ({ onCancel }: CreatePlaylistFormProps) => {
                     </ModalButton>
                     <ModalButton
                         disabled={isSubmitDisabled}
-                        loading={mutation.isPending}
+                        loading={isBusy}
                         type="submit"
                         variant="filled"
                     >
-                        {isSmartPlaylist && step === 1
-                            ? t('common.confirm', { postProcess: 'sentenceCase' })
-                            : t('common.create')}
+                        {submitLabel()}
                     </ModalButton>
                 </Group>
             </Stack>
