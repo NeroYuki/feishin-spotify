@@ -48,7 +48,7 @@ export function GenreWalkControls({
                 size="xs"
                 variant={mode === 'related' ? 'filled' : 'light'}
                 onClick={isActive ? undefined : onStartRelated}
-                style={{ color: 'var(--color-accent)', opacity: mode === 'random' ? 0.4 : 1 }}
+                style={{ opacity: mode === 'random' ? 0.4 : 1 }}
             >
                 Related Walk
             </Button>
@@ -70,7 +70,7 @@ export function GenreWalkControls({
                 </Text>
             )}
 
-            <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(255,255,255,0.08)', margin: '0 4px' }} />
+            <div style={{ width: 1, alignSelf: 'stretch', background: 'var(--mantine-color-default-border)', margin: '0 4px' }} />
 
             {/* Songs per genre */}
             <Group gap={4} style={{ alignItems: 'center', flexShrink: 0 }}>

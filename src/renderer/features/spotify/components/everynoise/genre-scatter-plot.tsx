@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 
+import { useColorScheme } from '/@/renderer/themes/use-app-theme';
 import type { CanvasTransform, GenreEntry, SpatialIndex } from '/@/renderer/features/spotify/api/everynoise-types';
 import {
     WORLD_H,
@@ -27,6 +28,7 @@ interface Props {
     height: number;
 }
 
+
 const MIN_SCALE = 0.08;
 const MAX_SCALE = 20;
 const ZOOM_FACTOR = 1.15;
@@ -43,6 +45,7 @@ export function GenreScatterPlot({
     width,
     height,
 }: Props) {
+    const colorScheme = useColorScheme();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const transformRef = useRef<CanvasTransform>({ offsetX: 0, offsetY: 0, scale: 1 });
     const isPanningRef = useRef(false);
@@ -52,6 +55,9 @@ export function GenreScatterPlot({
     const colourCacheRef = useRef<Map<string, string>>(new Map());
     const needsRedrawRef = useRef(true);
     const hasInitRef = useRef(false);
+    // Theme-aware colors used in the render loop
+    const bgColorRef = useRef('#111115');
+    const labelHighlightRef = useRef('#000000');
     // Overlap click cycling: track last-click position and candidate list
     const lastClickRef = useRef<{ candidates: GenreEntry[]; cx: number; cy: number; idx: number } | null>(null);
 
@@ -66,6 +72,13 @@ export function GenreScatterPlot({
     spatialRef.current = spatialIndex;
     const onHoverRef = useRef(onHover);
     onHoverRef.current = onHover;
+
+    // Sync theme colors into refs so the render loop always uses current values
+    useEffect(() => {
+        bgColorRef.current = colorScheme === 'dark' ? '#111115' : '#f5f4f0';
+        labelHighlightRef.current = colorScheme === 'dark' ? '#ffffff' : '#111111';
+        needsRedrawRef.current = true;
+    }, [colorScheme]);
 
     // Initial fit-to-screen — waits until ResizeObserver gives us real dimensions
     useEffect(() => {
@@ -113,7 +126,7 @@ export function GenreScatterPlot({
         ctx.clearRect(0, 0, W, H);
 
         // Background
-        ctx.fillStyle = '#111115';
+        ctx.fillStyle = bgColorRef.current;
         ctx.fillRect(0, 0, W, H);
 
         // ---- Related genre lines pass (behind labels) ----
@@ -181,7 +194,7 @@ export function GenreScatterPlot({
                 ctx.save();
                 ctx.shadowColor = colour;
                 ctx.shadowBlur = 8;
-                ctx.fillStyle = '#ffffff';
+                ctx.fillStyle = labelHighlightRef.current;
                 ctx.fillText(g.genre, x - textWidthCacheRef.current.get(cacheKey)! / 2, y);
                 ctx.restore();
             } else {

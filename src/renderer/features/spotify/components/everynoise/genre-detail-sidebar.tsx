@@ -68,8 +68,8 @@ export function GenreDetailSidebar({
             size={420}
             styles={{
                 body: { display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', padding: 0 },
-                content: { background: '#17171b', display: 'flex', flexDirection: 'column' },
-                header: { background: '#17171b', borderBottom: '1px solid rgba(255,255,255,0.07)' },
+                content: { background: 'var(--mantine-color-body)', display: 'flex', flexDirection: 'column' },
+                header: { background: 'var(--mantine-color-body)', borderBottom: '1px solid var(--mantine-color-default-border)' },
             }}
             title={
                 genre ? (
@@ -99,7 +99,7 @@ export function GenreDetailSidebar({
             {genre && (
                 <>
                     {/* ── Sticky top block ── */}
-                    <Stack gap="md" p="md" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+                    <Stack gap="md" p="md" style={{ borderBottom: '1px solid var(--mantine-color-default-border)', flexShrink: 0 }}>
                         {/* Description */}
                         <Stack gap="xs">
                             <Text isMuted size="xs" style={{ textTransform: 'uppercase' }}>
@@ -164,7 +164,7 @@ export function GenreDetailSidebar({
                                 </Text>
                                 <div
                                     style={{
-                                        background: 'rgba(255,255,255,0.08)',
+                                        background: 'var(--mantine-color-default-border)',
                                         borderRadius: 2,
                                         height: 3,
                                         overflow: 'hidden',

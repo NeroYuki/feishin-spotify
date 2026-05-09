@@ -12,6 +12,7 @@ import { GenreWalkControls } from '/@/renderer/features/spotify/components/every
 import { findNeighborInDirection } from '/@/renderer/features/spotify/components/everynoise/genre-scatter-helpers';
 import { AnimatedPage } from '/@/renderer/features/shared/components/animated-page';
 import { SpotifyConnectButton } from '/@/renderer/features/spotify/components/spotify-connect-button';
+import { useColorScheme } from '/@/renderer/themes/use-app-theme';
 import type { GenreEntry } from '/@/renderer/features/spotify/api/everynoise-types';
 import { Spinner } from '/@/shared/components/spinner/spinner';
 import { Stack } from '/@/shared/components/stack/stack';
@@ -39,6 +40,8 @@ function useContainerSize(ref: React.RefObject<HTMLDivElement | null>) {
 
 export default function SpotifyEveryNoisePage() {
     const isAuthenticated = useSpotifyIsAuthenticated();
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
     const { genres, index: spatialIndex, map: genreMap, isLoaded } = useGenreData();
     const { isIndexing, progress, totalGenres } = useGenreArtistsIndexer();
     const walk = useGenreWalk();
@@ -159,8 +162,8 @@ export default function SpotifyEveryNoisePage() {
                 {/* Top toolbar */}
                 <div
                     style={{
-                        background: 'rgba(0,0,0,0.4)',
-                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                        background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.7)',
+                        borderBottom: '1px solid var(--mantine-color-default-border)',
                         display: 'flex',
                         flexDirection: 'column',
                         flexShrink: 0,
@@ -226,10 +229,10 @@ export default function SpotifyEveryNoisePage() {
                     {selectedGenre && (
                         <div
                             style={{
-                                background: 'rgba(0,0,0,0.45)',
+                                background: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.75)',
                                 borderRadius: 6,
                                 bottom: 10,
-                                color: 'rgba(255,255,255,0.35)',
+                                color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)',
                                 fontSize: 11,
                                 left: 10,
                                 lineHeight: 1.5,

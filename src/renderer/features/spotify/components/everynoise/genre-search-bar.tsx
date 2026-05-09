@@ -55,10 +55,10 @@ export function GenreSearchBar({ genres, onSelect }: Props) {
                 <Stack
                     gap={0}
                     style={{
-                        background: '#1c1c22',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: 'var(--mantine-color-body)',
+                        border: '1px solid var(--mantine-color-default-border)',
                         borderRadius: 6,
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
                         left: 0,
                         maxHeight: 280,
                         overflowY: 'auto',
@@ -78,7 +78,7 @@ export function GenreSearchBar({ genres, onSelect }: Props) {
                             onMouseDown={() => handleSelect(g)}
                             onMouseEnter={(e) => {
                                 (e.currentTarget as HTMLDivElement).style.background =
-                                    'rgba(255,255,255,0.07)';
+                                    'var(--mantine-color-default-hover)';
                             }}
                             onMouseLeave={(e) => {
                                 (e.currentTarget as HTMLDivElement).style.background = 'transparent';
