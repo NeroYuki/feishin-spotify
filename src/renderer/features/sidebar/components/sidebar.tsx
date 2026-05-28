@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { AnimatePresence, motion } from 'motion/react';
-import { CSSProperties, MouseEvent, useMemo } from 'react';
+import { MouseEvent, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import styles from './sidebar.module.css';
@@ -16,8 +16,10 @@ import { SidebarCollectionList } from '/@/renderer/features/sidebar/components/s
 import { SidebarIcon } from '/@/renderer/features/sidebar/components/sidebar-icon';
 import { SidebarItem } from '/@/renderer/features/sidebar/components/sidebar-item';
 import {
+    SidebarPlaylistAddDragContext,
     SidebarPlaylistList,
     SidebarSharedPlaylistList,
+    useSidebarPlaylistAddDragMonitor,
 } from '/@/renderer/features/sidebar/components/sidebar-playlist-list';
 import {
     useAppStore,
@@ -46,6 +48,17 @@ import { AppRoute } from '/@/renderer/router/routes';
 import { ExplicitStatus, LibraryItem } from '/@/shared/types/domain-types';
 import { Platform } from '/@/shared/types/types';
 
+const SidebarPlaylistSection = () => {
+    const isAddDragActive = useSidebarPlaylistAddDragMonitor();
+
+    return (
+        <SidebarPlaylistAddDragContext.Provider value={isAddDragActive}>
+            <SidebarPlaylistList />
+            <SidebarSharedPlaylistList />
+        </SidebarPlaylistAddDragContext.Provider>
+    );
+};
+
 export const Sidebar = () => {
     const { t } = useTranslation();
 
@@ -53,20 +66,20 @@ export const Sidebar = () => {
 
     const translatedSidebarItemMap = useMemo(
         () => ({
-            Albums: t('page.sidebar.albums', { postProcess: 'titleCase' }),
-            Artists: t('page.sidebar.albumArtists', { postProcess: 'titleCase' }),
-            'Artists-all': t('page.sidebar.artists', { postProcess: 'titleCase' }),
-            Collections: t('page.sidebar.collections', { postProcess: 'titleCase' }),
-            Favorites: t('page.sidebar.favorites', { postProcess: 'titleCase' }),
-            Folders: t('page.sidebar.folders', { postProcess: 'titleCase' }),
-            Genres: t('page.sidebar.genres', { postProcess: 'titleCase' }),
-            Home: t('page.sidebar.home', { postProcess: 'titleCase' }),
-            'Now Playing': t('page.sidebar.nowPlaying', { postProcess: 'titleCase' }),
-            Playlists: t('page.sidebar.playlists', { postProcess: 'titleCase' }),
-            Radio: t('page.sidebar.radio', { postProcess: 'titleCase' }),
-            Search: t('page.sidebar.search', { postProcess: 'titleCase' }),
-            Settings: t('page.sidebar.settings', { postProcess: 'titleCase' }),
-            Tracks: t('page.sidebar.tracks', { postProcess: 'titleCase' }),
+            Albums: t('page.sidebar.albums'),
+            Artists: t('page.sidebar.albumArtists'),
+            'Artists-all': t('page.sidebar.artists'),
+            Collections: t('page.sidebar.collections'),
+            Favorites: t('page.sidebar.favorites'),
+            Folders: t('page.sidebar.folders'),
+            Genres: t('page.sidebar.genres'),
+            Home: t('page.sidebar.home'),
+            'Now Playing': t('page.sidebar.nowPlaying'),
+            Playlists: t('page.sidebar.playlists'),
+            Radio: t('page.sidebar.radio'),
+            Search: t('page.sidebar.search'),
+            Settings: t('page.sidebar.settings'),
+            Tracks: t('page.sidebar.tracks'),
         }),
         [t],
     );
@@ -124,9 +137,7 @@ export const Sidebar = () => {
                     <Accordion.Item value="library">
                         <Accordion.Control>
                             <Text fw={500} variant="secondary">
-                                {t('page.sidebar.myLibrary', {
-                                    postProcess: 'titleCase',
-                                })}
+                                {t('page.sidebar.myLibrary')}
                             </Text>
                         </Accordion.Control>
                         <Accordion.Panel>
@@ -143,12 +154,7 @@ export const Sidebar = () => {
                         </Accordion.Panel>
                     </Accordion.Item>
                     <SidebarCollectionList />
-                    {sidebarPlaylistList && (
-                        <>
-                            <SidebarPlaylistList />
-                            <SidebarSharedPlaylistList />
-                        </>
-                    )}
+                    {sidebarPlaylistList && <SidebarPlaylistSection />}
                     <Accordion.Item value="spotify">
                         <Accordion.Control>
                             <Text fw={500} variant="secondary">
@@ -193,7 +199,6 @@ export const Sidebar = () => {
 
 const SidebarImage = () => {
     const { t } = useTranslation();
-    const leftWidth = useAppStore((state) => state.sidebar.leftWidth);
     const { setSideBar } = useAppStoreActions();
     const currentSong = usePlayerSong();
     const isRadioActive = useIsRadioActive();
@@ -250,18 +255,10 @@ const SidebarImage = () => {
             onClick={expandFullScreenPlayer}
             onContextMenu={handleToggleContextMenu}
             role="button"
-            style={
-                {
-                    '--sidebar-image-height': leftWidth,
-                } as CSSProperties
-            }
+            style={{ aspectRatio: 1 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
         >
-            <Tooltip
-                label={t('player.toggleFullscreenPlayer', {
-                    postProcess: 'sentenceCase',
-                })}
-            >
+            <Tooltip label={t('player.toggleFullscreenPlayer')}>
                 {isRadioActive && radioImageUrl ? (
                     <img className={styles.sidebarImage} loading="eager" src={radioImageUrl} />
                 ) : isRadioActive ? (
@@ -308,9 +305,7 @@ const SidebarImage = () => {
                     top: '1rem',
                 }}
                 tooltip={{
-                    label: t('common.collapse', {
-                        postProcess: 'titleCase',
-                    }),
+                    label: t('common.collapse'),
                     openDelay: 500,
                 }}
             />

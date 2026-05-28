@@ -5,3 +5,4 @@ import './remote';
 import './settings';
 import './discord-rpc';
 import './spotify';
+import './visualizer';

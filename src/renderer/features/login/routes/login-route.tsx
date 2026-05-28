@@ -117,12 +117,8 @@ const LoginRoute = () => {
                 <PageHeader />
                 <Center style={{ height: '100%', width: '100vw' }}>
                     <Stack>
-                        <TextTitle fw={600}>
-                            {t('error.genericError', { postProcess: 'sentenceCase' })}
-                        </TextTitle>
-                        <Text fw={500}>
-                            {t('error.serverNotSelectedError', { postProcess: 'sentenceCase' })}
-                        </Text>
+                        <TextTitle fw={600}>{t('error.genericError')}</TextTitle>
+                        <Text fw={500}>{t('error.serverNotSelectedError')}</Text>
                         <Code block>{JSON.stringify(config, null, 2)}</Code>
                     </Stack>
                 </Center>
@@ -135,7 +131,7 @@ const LoginRoute = () => {
 
         if (!authFunction) {
             return toast.error({
-                message: t('error.invalidServer', { postProcess: 'sentenceCase' }),
+                message: t('error.invalidServer'),
             });
         }
 
@@ -153,7 +149,7 @@ const LoginRoute = () => {
 
             if (!data) {
                 return toast.error({
-                    message: t('error.authenticationFailed', { postProcess: 'sentenceCase' }),
+                    message: t('error.authenticationFailed'),
                 });
             }
 
@@ -197,7 +193,7 @@ const LoginRoute = () => {
             }
 
             toast.success({
-                message: t('form.addServer.success', { postProcess: 'sentenceCase' }),
+                message: t('form.addServer.success'),
             });
 
             if (localSettings && values.password) {
@@ -206,7 +202,6 @@ const LoginRoute = () => {
                     toast.error({
                         message: t('form.addServer.error', {
                             context: 'savePassword',
-                            postProcess: 'sentenceCase',
                         }),
                     });
                 }
@@ -252,7 +247,6 @@ const LoginRoute = () => {
                                     data-autofocus
                                     label={t('form.addServer.input', {
                                         context: 'username',
-                                        postProcess: 'titleCase',
                                     })}
                                     required
                                     variant="filled"
@@ -261,7 +255,6 @@ const LoginRoute = () => {
                                 <PasswordInput
                                     label={t('form.addServer.input', {
                                         context: 'password',
-                                        postProcess: 'titleCase',
                                     })}
                                     required
                                     variant="filled"
@@ -279,7 +272,6 @@ const LoginRoute = () => {
                             >
                                 {t('common.login', {
                                     defaultValue: 'Login',
-                                    postProcess: 'titleCase',
                                 })}
                             </Button>
                         </Stack>

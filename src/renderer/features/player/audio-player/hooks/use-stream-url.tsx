@@ -8,7 +8,7 @@ import { QueueSong, ServerType } from '/@/shared/types/domain-types';
 export function useSongUrl(
     song: QueueSong | undefined,
     current: boolean,
-    transcode: TranscodingConfig,
+    transcode: Partial<TranscodingConfig>,
 ): string | undefined {
     // Spotify songs are played via the Web Playback SDK — no stream URL needed.
     const isSpotify = song?._serverType === ServerType.SPOTIFY;
@@ -31,7 +31,7 @@ export function useSongUrl(
                     bitrate: transcode.bitrate,
                     format: transcode.format,
                     id: song!.id,
-                    transcode: transcode.enabled,
+                    transcode: transcode.enabled ?? false,
                 },
             }),
         queryKey: [
@@ -73,7 +73,7 @@ export function useSongUrl(
 
 export const getSongUrl = async (
     song: QueueSong,
-    transcode: TranscodingConfig,
+    transcode: Partial<TranscodingConfig>,
     skipAutoTranscode?: boolean,
 ) => {
     const url = await api.controller.getStreamUrl({
@@ -83,7 +83,7 @@ export const getSongUrl = async (
             format: transcode.format,
             id: song.id,
             skipAutoTranscode,
-            transcode: transcode.enabled,
+            transcode: transcode.enabled ?? false,
         },
     });
 

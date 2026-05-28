@@ -80,7 +80,7 @@ export const LyricsActions = ({
                             uppercase
                             variant="subtle"
                         >
-                            {t('form.lyricsExport.export', { postProcess: 'sentenceCase ' })}
+                            {t('form.lyricsExport.export')}
                         </Button>
                     </Center>
                 )}
@@ -99,7 +99,7 @@ export const LyricsActions = ({
                             uppercase
                             variant="subtle"
                         >
-                            {t('common.search', { postProcess: 'titleCase' })}
+                            {t('common.search')}
                         </Button>
                     ) : null}
                     <ActionIcon
@@ -107,15 +107,12 @@ export const LyricsActions = ({
                         icon="minus"
                         onClick={() => handleLyricOffset(offsetMs - 50)}
                         tooltip={{
-                            label: t('common.slower', { postProcess: 'sentenceCase' }),
+                            label: t('common.slower'),
                             openDelay: 0,
                         }}
                         variant="subtle"
                     />
-                    <Tooltip
-                        label={t('setting.lyricOffset', { postProcess: 'sentenceCase' })}
-                        openDelay={0}
-                    >
+                    <Tooltip label={t('setting.lyricOffset')} openDelay={0}>
                         <NumberInput
                             aria-label="Lyric offset"
                             onChange={handleLyricOffset}
@@ -129,7 +126,7 @@ export const LyricsActions = ({
                         icon="plus"
                         onClick={() => handleLyricOffset(offsetMs + 50)}
                         tooltip={{
-                            label: t('common.faster', { postProcess: 'sentenceCase' }),
+                            label: t('common.faster'),
                             openDelay: 0,
                         }}
                         variant="subtle"
@@ -164,9 +161,7 @@ export const LyricsActions = ({
                             uppercase
                             variant="subtle"
                         >
-                            {hasLyrics
-                                ? t('common.clear', { postProcess: 'sentenceCase' })
-                                : t('common.refresh', { postProcess: 'sentenceCase' })}
+                            {hasLyrics ? t('common.clear') : t('common.refresh')}
                         </Button>
                     ) : null}
                 </Group>
@@ -179,7 +174,7 @@ export const LyricsActions = ({
                             uppercase
                             variant="subtle"
                         >
-                            {t('common.translation', { postProcess: 'sentenceCase' })}
+                            {t('common.translation')}
                         </Button>
                     ) : null}
                 </div>

@@ -424,6 +424,7 @@ type ApiContext = {
 
 type BaseEndpointArgs = {
     apiClientProps: {
+        forceRemoteUrl?: boolean;
         server?: null | ServerListItemWithCredential;
         serverId: string;
         signal?: AbortSignal;
@@ -1367,6 +1368,8 @@ export type ScrobbleQuery = {
     albumId?: string;
     event?: 'pause' | 'start' | 'timeupdate' | 'unpause';
     id: string;
+    mediaType: 'podcast' | 'song';
+    playbackRate: number;
     position?: number;
     submission: boolean;
 };

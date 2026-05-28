@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { HashRouter, Route, Routes } from 'react-router';
 
+import { ShuffleAllContextModal } from '/@/renderer/features/player/components/shuffle-all-modal';
 import { RouterErrorBoundary } from '/@/renderer/features/shared/components/router-error-boundary';
 import { AuthenticationOutlet } from '/@/renderer/layouts/authentication-outlet';
 import { ResponsiveLayout } from '/@/renderer/layouts/responsive-layout';
@@ -124,18 +125,6 @@ const LyricsSettingsContextModal = (props: any) => (
     </Suspense>
 );
 
-const LazyShuffleAllContextModal = lazy(() =>
-    import('/@/renderer/features/player/components/shuffle-all-modal').then((module) => ({
-        default: module.ShuffleAllContextModal,
-    })),
-);
-
-const ShuffleAllContextModal = (props: any) => (
-    <Suspense fallback={<Spinner container />}>
-        <LazyShuffleAllContextModal {...props} />
-    </Suspense>
-);
-
 const LazyAddToPlaylistContextModal = lazy(() =>
     import('/@/renderer/features/playlists/components/add-to-playlist-context-modal').then(
         (module) => ({
@@ -228,7 +217,7 @@ const appRouterModals = {
 
 export const AppRouter = () => {
     const router = (
-        <HashRouter unstable_useTransitions>
+        <HashRouter unstable_useTransitions={false}>
             <ModalsProvider modals={appRouterModals}>
                 <RouterErrorBoundary>
                     <Routes>

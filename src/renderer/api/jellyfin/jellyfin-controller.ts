@@ -395,10 +395,15 @@ export const JellyfinController: InternalControllerEndpoint = {
                 userId: apiClientProps.server.userId,
             },
             query: {
+                AlbumIds: query.id,
+                EnableUserData: true,
                 Fields: JF_FIELDS.SONG,
                 IncludeItemTypes: 'Audio',
-                ParentId: query.id,
+                Recursive: true,
                 SortBy: 'ParentIndexNumber,IndexNumber,SortName',
+                SortOrder: JFSortOrder.ASC,
+                StartIndex: 0,
+                UserId: apiClientProps.server.userId,
             },
         });
 
@@ -406,9 +411,15 @@ export const JellyfinController: InternalControllerEndpoint = {
             throw new Error('Failed to get album detail');
         }
 
+        // Workaround for Jellyfin bug that returns items that share the same album name
+        const albumIdSet = new Set([query.id]);
+        const songs = songsRes.body.Items.filter((item) => albumIdSet.has(item.AlbumId!));
+
         return jfNormalize.album(
-            { ...res.body, Songs: songsRes.body.Items },
+            { ...res.body, Songs: songs },
             apiClientProps.server,
+            args.context?.pathReplace,
+            args.context?.pathReplaceWith,
         );
     },
     getAlbumList: async (args) => {
@@ -580,7 +591,8 @@ export const JellyfinController: InternalControllerEndpoint = {
 
         return `${apiClientProps.server?.url}/items/${query.id}/download?apiKey=${apiClientProps.server?.credential}`;
     },
-    getFolder: async ({ apiClientProps, query }) => {
+    getFolder: async (args) => {
+        const { apiClientProps, query } = args;
         const userId = apiClientProps.server?.userId;
 
         if (!userId) throw new Error('No userId found');
@@ -742,6 +754,8 @@ export const JellyfinController: InternalControllerEndpoint = {
                 jfNormalize.song(
                     item as unknown as z.infer<typeof jfType._response.song>,
                     apiClientProps.server,
+                    args.context?.pathReplace,
+                    args.context?.pathReplaceWith,
                 ),
             );
 
@@ -923,6 +937,7 @@ export const JellyfinController: InternalControllerEndpoint = {
                 Fields: JF_FIELDS.PLAYLIST_LIST,
                 IncludeItemTypes: 'Playlist',
                 Limit: query.limit,
+                MediaTypes: 'Audio',
                 Recursive: true,
                 SearchTerm: query.searchTerm,
                 SortBy: playlistListSortMap.jellyfin[query.sortBy],
@@ -1051,7 +1066,9 @@ export const JellyfinController: InternalControllerEndpoint = {
             throw new Error('Failed to get server info');
         }
 
-        const defaultFeatures = {};
+        const defaultFeatures = {
+            [ServerFeature.REPORT_PLAYBACK]: [1],
+        };
 
         const features = {
             ...defaultFeatures,
