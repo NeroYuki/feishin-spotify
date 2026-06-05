@@ -200,6 +200,7 @@ export const utils = {
     spotifyAuthCallback,
     rendererUpdateAvailable,
     saveCustomCss,
+    separator: isWindows() ? '\\' : '/',
     setInputFocused,
     startPowerSaveBlocker,
     stopPowerSaveBlocker,

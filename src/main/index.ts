@@ -254,8 +254,8 @@ function createAlphaUpdaterInstance(): AppImageUpdater | MacUpdater | NsisUpdate
 }
 
 protocol.registerSchemesAsPrivileged([
-    { privileges: { bypassCSP: true }, scheme: 'feishin' },
-    { privileges: { bypassCSP: true }, scheme: 'feishin-dev' },
+    { privileges: { bypassCSP: true, corsEnabled: true }, scheme: 'feishin' },
+    { privileges: { bypassCSP: true, corsEnabled: true }, scheme: 'feishin-dev' },
 ]);
 
 process.on('uncaughtException', (error: any) => {
@@ -993,14 +993,33 @@ app.on('window-all-closed', () => {
     }
 });
 
-const FONT_HEADERS = [
+const FONT_HEADERS = new Set([
     'font/collection',
     'font/otf',
     'font/sfnt',
     'font/ttf',
     'font/woff',
     'font/woff2',
-];
+]);
+
+const bytesToInt = (array: Uint8Array, length: number): number => {
+    let value = 0;
+    for (let i = 0; i < length; i++) {
+        value = (value << 8) + array[i];
+    }
+
+    return value;
+};
+
+const FONT_FOUR_BYTE_MAGIC_NUMBERS = new Set([
+    0x4f54544f, // font/otf
+    0x774f4632, // font/woff2
+    0x774f4646, // font/woff
+]);
+
+const FONT_FIVE_BYTE_MAGIC_NUMBERS = new Set([
+    0x0001000000, // ttf, collection, sfnt
+]);
 
 const singleInstance = app.requestSingleInstanceLock();
 
@@ -1090,16 +1109,34 @@ if (!singleInstance) {
                 const response = await net.fetch(filePath);
                 const contentType = response.headers.get('content-type');
 
-                if (!contentType || !FONT_HEADERS.includes(contentType)) {
-                    getMainWindow()?.webContents.send('custom-font-error', filePath);
+                // On Linux, the mime type is included in the response header
+                // In this case, we can forward the response with no further processing
+                if (contentType && FONT_HEADERS.has(contentType)) {
+                    return response;
+                }
 
-                    return new Response(null, {
-                        status: 403,
-                        statusText: 'Forbidden',
+                // Otherwise, let's check the magic number to see if
+                // the file is a font type. This is either four or five bytes
+                const payload = await response.arrayBuffer();
+                const magicNumber = new Uint8Array(payload.slice(0, 5));
+                const fiveHex = bytesToInt(magicNumber, 5);
+                const fourHex = bytesToInt(magicNumber, 4);
+
+                if (
+                    FONT_FIVE_BYTE_MAGIC_NUMBERS.has(fiveHex) ||
+                    FONT_FOUR_BYTE_MAGIC_NUMBERS.has(fourHex)
+                ) {
+                    return new Response(payload, {
+                        headers: response.headers,
                     });
                 }
 
-                return response;
+                getMainWindow()?.webContents.send('custom-font-error', filePath);
+
+                return new Response(null, {
+                    status: 403,
+                    statusText: 'Forbidden',
+                });
             };
 
             protocol.handle('feishin', handleFeishinUrl);
@@ -1112,7 +1149,7 @@ if (!singleInstance) {
                     responseHeaders: {
                         ...details.responseHeaders,
                         'Content-Security-Policy': [
-                            "script-src 'self' 'unsafe-inline' https://umami.jeffvli.org; style-src 'self' 'unsafe-inline'; media-src 'self' http: https: data: blob:; img-src 'self' http: https: data: blob:; connect-src 'self' http: https: ws: wss:; default-src 'self';",
+                            "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' https://umami.jeffvli.org; style-src 'self' 'unsafe-inline'; media-src 'self' http: https: data: blob:; img-src 'self' http: https: data: blob:; connect-src 'self' http: https: ws: wss:; default-src 'self';",
                         ],
                     },
                 });
