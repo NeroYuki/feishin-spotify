@@ -85,6 +85,7 @@ export interface SavedCollection {
 }
 
 export type ServerListItem = {
+    audioMuseAIPassword?: string;
     audioMuseAIToken?: string;
     audioMuseAIUrl?: string;
     features?: ServerFeatures;

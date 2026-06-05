@@ -74,6 +74,7 @@ const HomeItemSchema = z.enum([
     'recentlyAdded',
     'recentlyPlayed',
     'recentlyReleased',
+    'recommended',
 ]);
 
 const PlayerItemSchema = z.enum([
@@ -841,6 +842,7 @@ export enum HomeItem {
     RECENTLY_ADDED = 'recentlyAdded',
     RECENTLY_PLAYED = 'recentlyPlayed',
     RECENTLY_RELEASED = 'recentlyReleased',
+    RECOMMENDED = 'recommended',
 }
 
 export enum PlayerbarSliderType {

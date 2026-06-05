@@ -71,6 +71,7 @@ export const EditServerForm = ({ isUpdate, onCancel, password, server }: EditSer
 
     const form = useForm({
         initialValues: {
+            audioMuseAIPassword: server.audioMuseAIPassword || '',
             audioMuseAIToken: server.audioMuseAIToken || '',
             audioMuseAIUrl: server.audioMuseAIUrl || '',
             isAdmin: server?.isAdmin,
@@ -186,6 +187,7 @@ export const EditServerForm = ({ isUpdate, onCancel, password, server }: EditSer
 
             serverItem.audioMuseAIUrl = values.audioMuseAIUrl?.trim().replace(/\/$/, '') || undefined;
             serverItem.audioMuseAIToken = values.audioMuseAIToken?.trim() || undefined;
+            serverItem.audioMuseAIPassword = values.audioMuseAIPassword?.trim() || undefined;
 
             updateServer(server.id, serverItem);
             toast.success({
@@ -328,6 +330,12 @@ export const EditServerForm = ({ isUpdate, onCancel, password, server }: EditSer
                     label="AudioMuse-AI API Token"
                     placeholder="Leave empty if auth is disabled"
                     {...form.getInputProps('audioMuseAIToken')}
+                />
+                <PasswordInput
+                    description="Required for Sonic Fingerprint. WARNING: stored as plain text."
+                    label="AudioMuse-AI Server Password"
+                    placeholder="Your Navidrome/Subsonic password"
+                    {...form.getInputProps('audioMuseAIPassword')}
                 />
                 <Group justify="flex-start">
                     <Button

@@ -23,21 +23,38 @@ function getHeaders(token: string): HeadersInit {
 async function handleResponse<T>(res: Response): Promise<T> {
     if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error((body as any).error || `AudioMuse-AI request failed: ${res.status}`);
+        const message =
+            (body as any).error ||
+            (body as any).response?.message ||
+            (body as any).message ||
+            `AudioMuse-AI request failed: ${res.status}`;
+        throw new Error(message);
     }
     return res.json() as Promise<T>;
 }
 
 export const audioMuseAIClient = {
     /** Instant Playlist – AI-generated playlist from a natural language prompt.
-     *  POST /api/chatPlaylist
+     *  POST /chat/api/chatPlaylist
      */
     async instantPlaylist(
-        opts: RequestOptions & { aiProvider?: string; userInput: string },
+        opts: RequestOptions & {
+            aiModel?: string;
+            aiProvider?: string;
+            limit?: number;
+            ollamaServerUrl?: string;
+            openaiServerUrl?: string;
+            userInput: string;
+        },
     ): Promise<AudioMuseTrack[]> {
-        const { baseUrl, token, userInput, aiProvider = 'NONE' } = opts;
-        const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/chatPlaylist`, {
-            body: JSON.stringify({ ai_provider: aiProvider, userInput }),
+        const { baseUrl, token, userInput, aiProvider = 'NONE', aiModel, openaiServerUrl, ollamaServerUrl, limit } = opts;
+        const body: Record<string, unknown> = { ai_provider: aiProvider, userInput };
+        if (aiModel) body.ai_model = aiModel;
+        if (openaiServerUrl) body.openai_server_url = openaiServerUrl;
+        if (ollamaServerUrl) body.ollama_server_url = ollamaServerUrl;
+        if (limit !== undefined) body.limit = limit;
+        const res = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/api/chatPlaylist`, {
+            body: JSON.stringify(body),
             headers: getHeaders(token),
             method: 'POST',
         });
@@ -50,6 +67,63 @@ export const audioMuseAIClient = {
         }));
     },
 
+    /** SemGrove Search – find songs lyrically and sonically similar to a seed song.
+     *  POST /api/sem_grove/search
+     */
+    async semGroveSearch(
+        opts: RequestOptions & { itemId: string; limit?: number },
+    ): Promise<AudioMuseTrack[]> {
+        const { baseUrl, token, itemId, limit = 50 } = opts;
+        const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/sem_grove/search`, {
+            body: JSON.stringify({ item_id: itemId, limit }),
+            headers: getHeaders(token),
+            method: 'POST',
+        });
+        const data = await handleResponse<any>(res);
+        return ((data.results as any[]) || []).map((r) => ({
+            album: r.album,
+            author: r.author,
+            item_id: String(r.item_id),
+            similarity: r.similarity,
+            title: r.title,
+        }));
+    },
+
+    /** Sonic Fingerprint – per-user recommendation based on listening habits.
+     *  POST /api/sonic_fingerprint/generate
+     */
+    async sonicFingerprint(
+        opts: RequestOptions & {
+            jellyfinToken?: string;
+            jellyfinUserId?: string;
+            n?: number;
+            navidromePassword?: string;
+            navidromeUser?: string;
+        },
+    ): Promise<AudioMuseTrack[]> {
+        const { baseUrl, token, n, jellyfinUserId, jellyfinToken, navidromeUser, navidromePassword } = opts;
+        const body: Record<string, unknown> = {};
+        if (n !== undefined) body.n = n;
+        if (jellyfinUserId) body.jellyfin_user_identifier = jellyfinUserId;
+        if (jellyfinToken) body.jellyfin_token = jellyfinToken;
+        if (navidromeUser) body.navidrome_user = navidromeUser;
+        if (navidromePassword) body.navidrome_password = navidromePassword;
+        console.log('[sonicFingerprint] Request body keys:', Object.keys(body), 'hasPassword:', Boolean(body.navidrome_password));
+        const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/sonic_fingerprint/generate`, {
+            body: JSON.stringify(body),
+            headers: getHeaders(token),
+            method: 'POST',
+        });
+        const results = await handleResponse<any[]>(res);
+        return results.map((r) => ({
+            album: r.album,
+            author: r.author,
+            distance: r.distance,
+            item_id: String(r.item_id),
+            title: r.title,
+        }));
+    },
+
     /** Song Path – find a path of musically similar songs between two tracks.
      *  GET /api/find_path
      */
@@ -57,14 +131,18 @@ export const audioMuseAIClient = {
         opts: RequestOptions & {
             endSongId: string;
             maxSteps?: number;
+            pathFixSize?: boolean;
             startSongId: string;
         },
     ): Promise<AudioMuseTrack[]> {
-        const { baseUrl, token, startSongId, endSongId, maxSteps = 10 } = opts;
+        const { baseUrl, token, startSongId, endSongId, maxSteps = 10, pathFixSize } = opts;
         const url = new URL(`${baseUrl.replace(/\/$/, '')}/api/find_path`);
         url.searchParams.set('start_song_id', startSongId);
         url.searchParams.set('end_song_id', endSongId);
         url.searchParams.set('max_steps', String(maxSteps));
+        if (pathFixSize !== undefined) {
+            url.searchParams.set('path_fix_size', pathFixSize ? 'true' : 'false');
+        }
         const res = await fetch(url.toString(), { headers: getHeaders(token) });
         const data = await handleResponse<any>(res);
         return ((data.path as any[]) || []).map((r) => ({
@@ -82,11 +160,16 @@ export const audioMuseAIClient = {
         opts: RequestOptions & {
             items: Array<{ id: string; op: 'ADD' | 'SUBTRACT'; type: 'artist' | 'song' }>;
             n?: number;
+            subtractDistance?: number;
+            temperature?: number;
         },
     ): Promise<AudioMuseTrack[]> {
-        const { baseUrl, token, items, n = 50 } = opts;
+        const { baseUrl, token, items, n = 50, subtractDistance, temperature } = opts;
+        const body: Record<string, unknown> = { items, n };
+        if (temperature !== undefined) body.temperature = temperature;
+        if (subtractDistance !== undefined) body.subtract_distance = subtractDistance;
         const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/alchemy`, {
-            body: JSON.stringify({ items, n }),
+            body: JSON.stringify(body),
             headers: getHeaders(token),
             method: 'POST',
         });

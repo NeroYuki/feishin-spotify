@@ -4,9 +4,10 @@ import {
     audioMuseAIClient,
     AudioMuseTrack,
 } from '/@/renderer/api/audiomuse-ai/audiomuse-ai-client';
-import { useCurrentServer } from '/@/renderer/store';
+import { useCurrentServer, useCurrentServerWithCredential } from '/@/renderer/store';
 import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
 import { Button } from '/@/shared/components/button/button';
+import { Checkbox } from '/@/shared/components/checkbox/checkbox';
 import { Group } from '/@/shared/components/group/group';
 import { NumberInput } from '/@/shared/components/number-input/number-input';
 import { ScrollArea } from '/@/shared/components/scroll-area/scroll-area';
@@ -20,8 +21,10 @@ import { toast } from '/@/shared/components/toast/toast';
 export type SonicMethod =
     | 'instant'
     | 'lyric-search'
+    | 'sem-grove'
     | 'song-alchemy'
     | 'song-path'
+    | 'sonic-fingerprint'
     | 'text-search';
 
 interface AlchemyItem {
@@ -42,8 +45,10 @@ interface SonicAnalysisPlaylistFormProps {
 const METHOD_LABELS: Record<SonicMethod, string> = {
     instant: 'Instant Playlist (AI)',
     'lyric-search': 'Lyric Search',
+    'sem-grove': 'SemGrove Search (By Song)',
     'song-alchemy': 'Song Alchemy',
     'song-path': 'Song Path',
+    'sonic-fingerprint': 'Sonic Fingerprint (Personal)',
     'text-search': 'Text Search',
 };
 
@@ -143,8 +148,8 @@ function SongPicker({
                     {showDropdown && results.length > 0 && (
                         <div
                             style={{
-                                background: 'var(--mantine-color-dark-7)',
-                                border: '1px solid var(--mantine-color-dark-4)',
+                                background: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-7))',
+                                border: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
                                 borderRadius: 4,
                                 left: 0,
                                 maxHeight: 200,
@@ -217,12 +222,16 @@ export const SonicAnalysisPlaylistForm = forwardRef<
     SonicAnalysisPlaylistFormProps
 >(({ onResultsChange }, ref) => {
     const server = useCurrentServer();
+    const serverWithCredential = useCurrentServerWithCredential();
     const baseUrl = server?.audioMuseAIUrl;
     const token = server?.audioMuseAIToken || '';
 
     const [method, setMethod] = useState<SonicMethod>('instant');
     const [isLoading, setIsLoading] = useState(false);
     const [results, setResults] = useState<AudioMuseTrack[]>([]);
+
+    // Shared song count
+    const [songCount, setSongCount] = useState<number>(100);
 
     // Instant Playlist state
     const [instantPrompt, setInstantPrompt] = useState('');
@@ -231,11 +240,14 @@ export const SonicAnalysisPlaylistForm = forwardRef<
     const [pathStart, setPathStart] = useState<AudioMuseTrack | null>(null);
     const [pathEnd, setPathEnd] = useState<AudioMuseTrack | null>(null);
     const [pathSteps, setPathSteps] = useState<number>(10);
+    const [pathFixSize, setPathFixSize] = useState<boolean>(false);
 
     // Song Alchemy state
     const [alchemyItems, setAlchemyItems] = useState<AlchemyItem[]>([]);
     const [alchemyQuery, setAlchemyQuery] = useState('');
     const [alchemyN, setAlchemyN] = useState<number>(50);
+    const [alchemyTemperature, setAlchemyTemperature] = useState<number>(1.0);
+    const [alchemySubtractDistance, setAlchemySubtractDistance] = useState<number>(0);
     const { results: alchemySearchResults, search: alchemySearch } = useTrackSearch(
         baseUrl,
         token,
@@ -249,6 +261,12 @@ export const SonicAnalysisPlaylistForm = forwardRef<
     // Lyric Search state
     const [lyricQuery, setLyricQuery] = useState('');
     const [lyricLimit, setLyricLimit] = useState<number>(50);
+
+    // SemGrove Search state
+    const [semGroveSong, setSemGroveSong] = useState<AudioMuseTrack | null>(null);
+
+    // Sonic Fingerprint state
+    const [fingerprintN, setFingerprintN] = useState<number>(100);
 
     useImperativeHandle(ref, () => ({
         getResults: () => results,
@@ -278,7 +296,11 @@ export const SonicAnalysisPlaylistForm = forwardRef<
                         return;
                     }
                     tracks = await audioMuseAIClient.instantPlaylist({
+                        aiModel: 'gemma-4-e4b-it',
+                        aiProvider: 'OPENAI',
                         baseUrl,
+                        limit: songCount,
+                        openaiServerUrl: 'http://192.168.1.2:1234/v1/chat/completions',
                         token,
                         userInput: instantPrompt.trim(),
                     });
@@ -294,6 +316,7 @@ export const SonicAnalysisPlaylistForm = forwardRef<
                         baseUrl,
                         endSongId: pathEnd.item_id,
                         maxSteps: pathSteps,
+                        pathFixSize,
                         startSongId: pathStart.item_id,
                         token,
                     });
@@ -316,6 +339,8 @@ export const SonicAnalysisPlaylistForm = forwardRef<
                             type: i.type,
                         })),
                         n: alchemyN,
+                        subtractDistance: alchemySubtractDistance || undefined,
+                        temperature: alchemyTemperature !== 1.0 ? alchemyTemperature : undefined,
                         token,
                     });
                     break;
@@ -346,6 +371,49 @@ export const SonicAnalysisPlaylistForm = forwardRef<
                         query: lyricQuery.trim(),
                         token,
                     });
+                    break;
+                }
+
+                case 'sem-grove': {
+                    if (!semGroveSong) {
+                        toast.error({ message: 'Please select a seed song.' });
+                        return;
+                    }
+                    tracks = await audioMuseAIClient.semGroveSearch({
+                        baseUrl,
+                        itemId: semGroveSong.item_id,
+                        limit: songCount,
+                        token,
+                    });
+                    break;
+                }
+
+                case 'sonic-fingerprint': {
+                    const cred = serverWithCredential;
+                    const typeLower = cred?.type?.toLowerCase();
+                    if (typeLower === 'jellyfin') {
+                        tracks = await audioMuseAIClient.sonicFingerprint({
+                            baseUrl,
+                            jellyfinToken: cred?.credential || undefined,
+                            jellyfinUserId: cred?.userId || undefined,
+                            n: fingerprintN,
+                            token,
+                        });
+                    } else if (typeLower === 'navidrome' || typeLower === 'subsonic') {
+                        tracks = await audioMuseAIClient.sonicFingerprint({
+                            baseUrl,
+                            n: fingerprintN,
+                            navidromePassword: server?.audioMuseAIPassword || undefined,
+                            navidromeUser: cred?.username || undefined,
+                            token,
+                        });
+                    } else {
+                        tracks = await audioMuseAIClient.sonicFingerprint({
+                            baseUrl,
+                            n: fingerprintN,
+                            token,
+                        });
+                    }
                     break;
                 }
             }
@@ -450,6 +518,11 @@ export const SonicAnalysisPlaylistForm = forwardRef<
                         value={pathSteps}
                         onChange={(v) => setPathSteps(Number(v) || 10)}
                     />
+                    <Checkbox
+                        label="Keep exact path size"
+                        checked={pathFixSize}
+                        onChange={(e) => setPathFixSize(e.currentTarget.checked)}
+                    />
                 </Stack>
             )}
 
@@ -483,8 +556,8 @@ export const SonicAnalysisPlaylistForm = forwardRef<
                         {showAlchemyDropdown && alchemySearchResults.length > 0 && (
                             <div
                                 style={{
-                                    background: 'var(--mantine-color-dark-7)',
-                                    border: '1px solid var(--mantine-color-dark-4)',
+                                    background: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-7))',
+                                    border: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
                                     borderRadius: 4,
                                     left: 0,
                                     maxHeight: 200,
@@ -516,6 +589,26 @@ export const SonicAnalysisPlaylistForm = forwardRef<
                         max={500}
                         value={alchemyN}
                         onChange={(v) => setAlchemyN(Number(v) || 50)}
+                    />
+                    <NumberInput
+                        label="Sampling temperature"
+                        description="Softmax temperature for probabilistic sampling (higher = more variety)"
+                        min={0.1}
+                        max={10}
+                        step={0.1}
+                        decimalScale={2}
+                        value={alchemyTemperature}
+                        onChange={(v) => setAlchemyTemperature(Number(v) || 1.0)}
+                    />
+                    <NumberInput
+                        label="Subtract threshold"
+                        description="Exclusion radius for SUBTRACT items (0 = use server default)"
+                        min={0}
+                        max={10}
+                        step={0.1}
+                        decimalScale={2}
+                        value={alchemySubtractDistance}
+                        onChange={(v) => setAlchemySubtractDistance(Number(v) || 0)}
                     />
                 </Stack>
             )}
@@ -556,6 +649,69 @@ export const SonicAnalysisPlaylistForm = forwardRef<
                         onChange={(v) => setLyricLimit(Number(v) || 50)}
                     />
                 </Stack>
+            )}
+
+            {/* ── SemGrove Search (By Song) ──────────────────────── */}
+            {method === 'sem-grove' && (
+                <Stack>
+                    <Text size="sm">
+                        Find songs that are lyrically and sonically similar to a seed song.
+                    </Text>
+                    <SongPicker
+                        baseUrl={baseUrl}
+                        label="Seed Song"
+                        selected={semGroveSong}
+                        token={token}
+                        onSelect={(t) => setSemGroveSong(t)}
+                    />
+                    <NumberInput
+                        label="Number of results"
+                        min={5}
+                        max={500}
+                        value={songCount}
+                        onChange={(v) => setSongCount(Number(v) || 50)}
+                    />
+                </Stack>
+            )}
+
+            {/* ── Sonic Fingerprint (Personal) ───────────────────── */}
+            {method === 'sonic-fingerprint' && (
+                <Stack>
+                    <Text size="sm">
+                        Generates recommendations based on your personal listening history from the
+                        media server. Credentials are read from your saved server configuration.
+                    </Text>
+                    {serverWithCredential?.type === 'JELLYFIN' && !serverWithCredential?.credential && (
+                        <Text size="xs" c="yellow">
+                            No Jellyfin API token saved for this server. Please add it in server
+                            settings to use Sonic Fingerprint.
+                        </Text>
+                    )}
+                    {serverWithCredential?.type === 'NAVIDROME' && !serverWithCredential?.credential && (
+                        <Text size="xs" c="yellow">
+                            No Navidrome password saved for this server. Please add it in server
+                            settings to use Sonic Fingerprint.
+                        </Text>
+                    )}
+                    <NumberInput
+                        label="Number of songs"
+                        min={10}
+                        max={500}
+                        value={fingerprintN}
+                        onChange={(v) => setFingerprintN(Number(v) || 100)}
+                    />
+                </Stack>
+            )}
+
+            {/* ── Shared song count for Instant Playlist ──────────── */}
+            {method === 'instant' && (
+                <NumberInput
+                    label="Number of songs"
+                    min={10}
+                    max={500}
+                    value={songCount}
+                    onChange={(v) => setSongCount(Number(v) || 100)}
+                />
             )}
 
             <Button loading={isLoading} variant="filled" onClick={handleGenerate}>

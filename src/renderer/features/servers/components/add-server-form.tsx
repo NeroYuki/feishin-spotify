@@ -131,6 +131,7 @@ export const AddServerForm = ({ onCancel }: AddServerFormProps) => {
 
     const form = useForm({
         initialValues: {
+            audioMuseAIPassword: '',
             audioMuseAIToken: '',
             audioMuseAIUrl: '',
             legacyAuth: isLegacyAuth(),
@@ -227,6 +228,10 @@ export const AddServerForm = ({ onCancel }: AddServerFormProps) => {
 
             if (values.audioMuseAIToken?.trim()) {
                 serverItem.audioMuseAIToken = values.audioMuseAIToken.trim();
+            }
+
+            if (values.audioMuseAIPassword?.trim()) {
+                serverItem.audioMuseAIPassword = values.audioMuseAIPassword.trim();
             }
 
             addServer(serverItem);
@@ -378,6 +383,12 @@ export const AddServerForm = ({ onCancel }: AddServerFormProps) => {
                         label="AudioMuse-AI API Token"
                         placeholder="Leave empty if auth is disabled"
                         {...form.getInputProps('audioMuseAIToken')}
+                    />
+                    <PasswordInput
+                        description="Required for Sonic Fingerprint. WARNING: stored as plain text."
+                        label="AudioMuse-AI Server Password"
+                        placeholder="Your Navidrome/Subsonic password"
+                        {...form.getInputProps('audioMuseAIPassword')}
                     />
                     <Group justify="flex-start">
                         <Button
