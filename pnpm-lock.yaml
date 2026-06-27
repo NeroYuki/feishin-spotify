@@ -68,7 +68,7 @@ importers:
         version: 3.52.1(@types/node@24.13.2)(zod@3.25.76)
       '@wavesurfer/react':
         specifier: ^1.0.12
-        version: 1.0.12(react@19.2.7)(wavesurfer.js@7.12.8)
+        version: 1.0.12(react@19.2.7)(wavesurfer.js@7.12.7)
       '@xhayper/discord-rpc':
         specifier: ^1.3.4
         version: 1.3.4
@@ -218,7 +218,7 @@ importers:
         version: 2.2.2
       wavesurfer.js:
         specifier: ^7.12.7
-        version: 7.12.8
+        version: 7.12.7
       ws:
         specifier: ^8.21.0
         version: 8.21.0
@@ -2445,6 +2445,7 @@ packages:
   '@xmldom/xmldom@0.8.12':
     resolution: {integrity: sha512-9k/gHF6n/pAi/9tqr3m3aqkuiNosYTurLLUtc7xQ9sxB/wm7WPygCv8GYa6mS0fLJEHhqMC1ATYhz++U/lRHqg==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   abbrev@4.0.0:
     resolution: {integrity: sha512-a1wflyaL0tHtJSmLSOVybYhy22vRih4eduhhrkcjgrWGnRfrZtovJ2FRjxuTtkkj47O/baf0R86QU5OuYpz8fA==}
@@ -2507,6 +2508,9 @@ packages:
   anymatch@3.1.3:
     resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}
     engines: {node: '>= 8'}
+
+  anynum@1.0.1:
+    resolution: {integrity: sha512-N6//FLET/tXYNM/F6ABca1oH6fWB+KlTt909Le28WMDBk8oaT4vY17DCrwg2MvmuqUKt3Ni4N5dGJ/EoBgcO6A==}
 
   app-builder-lib@26.15.5:
     resolution: {integrity: sha512-CJdzqy4YXQQdn+ivw1ssuY4yBTgVaBtniB2Dnjc6JsM9mbXoZ4shbuuysjenZloMOEIKEqkuRxltNQyG/NP/pA==}
@@ -3045,6 +3049,9 @@ packages:
 
   discord-api-types@0.38.44:
     resolution: {integrity: sha512-q91MgBzP/gRaCLIbQTaOrOhbD8uVIaPKxpgX2sfFB2nZ9nSiTYM9P3NFQ7cbO6NCxctI6ODttc67MI+YhIfILg==}
+
+  discord-api-types@0.38.49:
+    resolution: {integrity: sha512-XnqcWmnFZFAE8ZM8SHAw9DIV8D3Or00rMQ8iQLotrEA2PmXhl+ykaf6L6q4l474hrSUH1JaYcv+iOMRWp2p6Tg==}
 
   dmg-builder@26.15.5:
     resolution: {integrity: sha512-Ts58Bs9QVCPhkhvkz9V1JwVoIwmbA06szZTM7W/ihzoDjHlf7KJo1Ci9nFknoFUC8uDeYgtbu5HW8eAeZ5qeSA==}
@@ -3992,6 +3999,9 @@ packages:
   is-typed-array@1.1.15:
     resolution: {integrity: sha512-p3EcsicXjit7SaskXHs1hA91QxgTw46Fv6EFKKGS5DRFLD8yKnohjF3hxoju94b/OcMZoQukzpPpBE9uLVKzgQ==}
     engines: {node: '>= 0.4'}
+
+  is-unsafe@1.0.1:
+    resolution: {integrity: sha512-CLK2+VdgERgD96EYm5lUQssZYlRg2tkZnbsxZoacmSiRxiFJ4Nk4SzjCl+Ur+v3kXIY9dTIdb3IH22y1mZ56LA==}
 
   is-valid-glob@1.0.0:
     resolution: {integrity: sha512-AhiROmoEFDSsjx8hW+5sGwgKVIORcXnrlAx/R0ZSeaPw70Vw0CqkGBBhHGL58Uox2eXnU1AnvXJl1XlyedO5bA==}
@@ -6903,7 +6913,7 @@ snapshots:
       semver: 7.7.4
       sumchecker: 3.0.1
     optionalDependencies:
-      undici: 7.24.7
+      undici: 7.27.2
     transitivePeerDependencies:
       - supports-color
 
@@ -7359,7 +7369,7 @@ snapshots:
 
   '@peculiar/webcrypto@1.7.1':
     dependencies:
-      '@peculiar/asn1-schema': 2.8.0
+      '@peculiar/asn1-schema': 2.7.0
       '@peculiar/json-schema': 1.1.12
       '@peculiar/utils': 2.0.3
       tslib: 2.8.1
@@ -7800,7 +7810,7 @@ snapshots:
   '@rollup/plugin-terser@0.4.4(rollup@2.80.0)':
     dependencies:
       serialize-javascript: 6.0.2
-      smob: 1.6.1
+      smob: 1.6.2
       terser: 5.46.1
     optionalDependencies:
       rollup: 2.80.0
@@ -8158,10 +8168,10 @@ snapshots:
 
   '@vladfrangu/async_event_emitter@2.4.7': {}
 
-  '@wavesurfer/react@1.0.12(react@19.2.7)(wavesurfer.js@7.12.8)':
+  '@wavesurfer/react@1.0.12(react@19.2.7)(wavesurfer.js@7.12.7)':
     dependencies:
       react: 19.2.7
-      wavesurfer.js: 7.12.8
+      wavesurfer.js: 7.12.7
 
   '@xhayper/discord-rpc@1.3.4':
     dependencies:
@@ -8229,6 +8239,8 @@ snapshots:
     dependencies:
       normalize-path: 3.0.0
       picomatch: 2.3.2
+
+  anynum@1.0.1: {}
 
   app-builder-lib@26.15.5(dmg-builder@26.15.5)(electron-builder-squirrel-windows@26.15.5):
     dependencies:
@@ -8618,7 +8630,7 @@ snapshots:
       parse5: 7.3.0
       parse5-htmlparser2-tree-adapter: 7.1.0
       parse5-parser-stream: 7.1.2
-      undici: 7.24.7
+      undici: 7.27.2
       whatwg-mimetype: 4.0.0
 
   chownr@3.0.0: {}
@@ -8869,6 +8881,8 @@ snapshots:
       path-type: 4.0.0
 
   discord-api-types@0.38.44: {}
+
+  discord-api-types@0.38.49: {}
 
   dmg-builder@26.15.5(electron-builder-squirrel-windows@26.15.5):
     dependencies:
@@ -10098,6 +10112,8 @@ snapshots:
     dependencies:
       which-typed-array: 1.1.20
 
+  is-unsafe@1.0.1: {}
+
   is-valid-glob@1.0.0: {}
 
   is-weakmap@2.0.2: {}
@@ -10231,7 +10247,7 @@ snapshots:
 
   kuroshiro@1.2.0:
     dependencies:
-      '@babel/runtime': 7.29.7
+      '@babel/runtime': 7.29.2
 
   lazy-val@1.0.5: {}
 
@@ -10455,9 +10471,9 @@ snapshots:
       graceful-fs: 4.2.11
       nopt: 9.0.0
       proc-log: 6.1.0
-      semver: 7.8.2
-      tar: 7.5.16
-      tinyglobby: 0.2.17
+      semver: 7.8.5
+      tar: 7.5.13
+      tinyglobby: 0.2.15
       undici: 6.27.0
       which: 6.0.1
 
@@ -11983,7 +11999,7 @@ snapshots:
 
   webcrypto-core@1.9.2:
     dependencies:
-      '@peculiar/asn1-schema': 2.8.0
+      '@peculiar/asn1-schema': 2.7.0
       '@peculiar/json-schema': 1.1.12
       '@peculiar/utils': 2.0.3
       asn1js: 3.0.10
