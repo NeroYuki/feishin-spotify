@@ -294,6 +294,36 @@ export const LyricsSettingsForm = ({ settingsKey }: LyricsSettingsFormProps) => 
         {
             control: (
                 <Switch
+                    aria-label="Enable furigana"
+                    defaultChecked={lyricsSettings.enableFurigana}
+                    onChange={(e) =>
+                        updateLyricsSetting({ enableFurigana: e.currentTarget.checked })
+                    }
+                />
+            ),
+            description: t('setting.enableFurigana', {
+                context: 'description',
+            }),
+            isHidden: !isElectron(),
+            title: t('setting.enableFurigana'),
+        },
+        {
+            control: (
+                <Switch
+                    aria-label="Enable romaji"
+                    defaultChecked={lyricsSettings.enableRomaji}
+                    onChange={(e) => updateLyricsSetting({ enableRomaji: e.currentTarget.checked })}
+                />
+            ),
+            description: t('setting.enableRomaji', {
+                context: 'description',
+            }),
+            isHidden: !isElectron(),
+            title: t('setting.enableRomaji'),
+        },
+        {
+            control: (
+                <Switch
                     aria-label="Enable NetEase translations"
                     defaultChecked={lyricsSettings.enableNeteaseTranslation}
                     onChange={(e) => {

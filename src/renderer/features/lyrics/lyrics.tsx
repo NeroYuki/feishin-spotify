@@ -16,6 +16,10 @@ import {
     type LyricsQueryResult,
 } from '/@/renderer/features/lyrics/api/lyrics-api';
 import { openLyricsExportModal } from '/@/renderer/features/lyrics/components/lyrics-export-form';
+import {
+    useFuriganaLyrics,
+    useRomajiLyrics,
+} from '/@/renderer/features/lyrics/hooks/use-furigana-lyrics';
 import { LyricsActions } from '/@/renderer/features/lyrics/lyrics-actions';
 import {
     SynchronizedLyrics,
@@ -55,6 +59,8 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
 
     const {
         enableAutoTranslation,
+        enableFurigana,
+        enableRomaji,
         preferLocalLyrics,
         preferRomanizeProxy,
         romanizeProxyApiKey,
@@ -197,7 +203,16 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
         return baseSynced;
     }, [showRomanizedLyrics, romanizeProxyLyrics, baseSynced, preferLocalLyrics, data?.local]);
 
-    const displayLyrics = isLyricsDisabled ? null : lyrics;
+    const { data: furiganaConvertedLyrics } = useFuriganaLyrics(lyrics?.lyrics, !!enableFurigana);
+    const { data: romajiConvertedLyrics } = useRomajiLyrics(lyrics?.lyrics, !!enableRomaji);
+
+    const displayLyrics = useMemo(() => {
+        if (isLyricsDisabled || !lyrics) return null;
+        if (enableFurigana && furiganaConvertedLyrics) {
+            return { ...lyrics, lyrics: furiganaConvertedLyrics };
+        }
+        return lyrics;
+    }, [enableFurigana, isLyricsDisabled, lyrics, furiganaConvertedLyrics]);
 
     const currentOffsetMs = useMemo(() => {
         if (!data) return 0;
@@ -388,10 +403,10 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
     }, [isLoadingLyrics, hasNoLyrics, fadeOutNoLyricsMessage]);
 
     const handleExportLyrics = useCallback(() => {
-        if (displayLyrics) {
-            openLyricsExportModal({ lyrics: displayLyrics, offsetMs: currentOffsetMs, synced });
+        if (lyrics && !isLyricsDisabled) {
+            openLyricsExportModal({ lyrics, offsetMs: currentOffsetMs, synced });
         }
-    }, [currentOffsetMs, displayLyrics, synced]);
+    }, [currentOffsetMs, isLyricsDisabled, lyrics, synced]);
 
     const handleOpenSettings = () => {
         openLyricsSettingsModal(settingsKey);
@@ -439,12 +454,22 @@ export const Lyrics = ({ fadeOutNoLyricsMessage = true, settingsKey = 'default' 
                                     <SynchronizedLyrics
                                         {...(displayLyrics as SynchronizedLyricsProps)}
                                         offsetMs={displayOffsetMs}
+                                        romajiLyrics={
+                                            enableRomaji
+                                                ? (romajiConvertedLyrics as SynchronizedLyricsProps['romajiLyrics'])
+                                                : null
+                                        }
                                         settingsKey={settingsKey}
                                         translatedLyrics={showTranslation ? translatedLyrics : null}
                                     />
                                 ) : (
                                     <UnsynchronizedLyrics
                                         {...(displayLyrics as UnsynchronizedLyricsProps)}
+                                        romajiLyrics={
+                                            enableRomaji
+                                                ? (romajiConvertedLyrics as UnsynchronizedLyricsProps['romajiLyrics'])
+                                                : null
+                                        }
                                         settingsKey={settingsKey}
                                         translatedLyrics={showTranslation ? translatedLyrics : null}
                                     />

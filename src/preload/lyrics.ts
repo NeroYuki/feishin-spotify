@@ -42,11 +42,21 @@ const fetchRomanizeProxyLyrics = (
 const cancelRomanizeProxyFetch = (songId: string): Promise<void> => {
     return ipcRenderer.invoke('lyric-romanize-proxy-cancel', songId);
 };
+    
+const convertFurigana = (text: string): Promise<string> => {
+    return ipcRenderer.invoke('lyric-convert-furigana', text);
+};
+
+const convertRomaji = (text: string): Promise<string> => {
+    return ipcRenderer.invoke('lyric-convert-romaji', text);
+};
 
 export const lyrics = {
     cancelRomanizeProxyFetch,
     clearLyricsCache,
     fetchRomanizeProxyLyrics,
+    convertFurigana,
+    convertRomaji,
     getRemoteLyricsByRemoteId,
     getRemoteLyricsBySong,
     searchRemoteLyrics,
