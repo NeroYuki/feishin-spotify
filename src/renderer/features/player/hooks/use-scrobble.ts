@@ -323,6 +323,14 @@ export const useScrobble = () => {
             prev: { index: number; song: QueueSong | undefined },
         ) => {
             const currentSong = properties.song;
+
+            // External enrichment-proxy songs (ext- prefix) don't exist as Navidrome
+            // IDs. Navidrome delegates scrobble to the Subsonic API, which will fail
+            // for unknown IDs, causing toast spam. Skip scrobbling entirely for ext- songs.
+            if (currentSong?.id?.startsWith('ext-')) {
+                return;
+            }
+
             const previousSong = previousSongRef.current;
             const previousPositionSec = stopPositionRef.current;
             const mediaType = currentSong?._itemType.includes('song') ? 'song' : 'podcast';

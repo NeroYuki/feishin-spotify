@@ -102,9 +102,9 @@ export function SearchSongsSection({
                 </Box>
             ) : (
                 <>
-                    {songs.map((song) => (
+                    {songs.map((song, index) => (
                         <CommandItemSelectable
-                            key={`search-song-${song.id}`}
+                            key={`search-song-${song.id}-${index}`}
                             onSelect={() => {
                                 navigate(
                                     generatePath(AppRoute.LIBRARY_ALBUMS_DETAIL, {
@@ -121,6 +121,7 @@ export function SearchSongsSection({
                                     id={song.id}
                                     imageId={song.imageId}
                                     imageUrl={song.imageUrl}
+                                    isExternal={song.id.startsWith('ext-')}
                                     isHighlighted={isHighlighted}
                                     itemType={LibraryItem.SONG}
                                     song={song}

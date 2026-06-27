@@ -1173,7 +1173,15 @@ export const NavidromeController: InternalControllerEndpoint = {
 
         return SubsonicController.savePlayQueue(args);
     },
-    scrobble: SubsonicController.scrobble,
+    scrobble: async (args) => {
+        // External enrichment-proxy songs (ext- prefix) don't exist as Navidrome
+        // IDs. The Subsonic scrobble API will fail for unknown IDs, causing toast
+        // spam in the Subsonic response interceptor. Silently skip these songs.
+        if (args.query.id?.startsWith('ext-')) {
+            return null;
+        }
+        return SubsonicController.scrobble(args);
+    },
     search: SubsonicController.search,
     setPlaylistSongs: SubsonicController.setPlaylistSongs,
     setRating: SubsonicController.setRating,

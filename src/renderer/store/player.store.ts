@@ -2071,9 +2071,11 @@ export const incrementQueuePlayCount = (ids: string[]) => {
 };
 
 export const updateQueueSong = (songId: string, updatedSong: Song) => {
+    let foundCount = 0;
     usePlayerStoreBase.setState((state) => {
         Object.values(state.queue.songs).forEach((song) => {
             if (song.id === songId) {
+                foundCount++;
                 const uniqueId = song._uniqueId;
                 state.queue.songs[song._uniqueId] = {
                     ...updatedSong,
@@ -2083,6 +2085,7 @@ export const updateQueueSong = (songId: string, updatedSong: Song) => {
             }
         });
     });
+
 };
 
 export const useCurrentPlaylistContextId = () => {
@@ -2125,6 +2128,7 @@ export const usePlayerSong = () => {
         (prev, next) => {
             return (
                 prev?._uniqueId === next?._uniqueId &&
+                prev?.duration === next?.duration &&
                 prev?.userFavorite === next?.userFavorite &&
                 prev?.userRating === next?.userRating
             );

@@ -12,12 +12,42 @@ import { toast } from '/@/shared/components/toast/toast';
 
 const queryCache = new QueryCache({
     onError: (error: any, query) => {
+        // Suppress toast spam for external enrichment-proxy songs (ext- prefix IDs).
+        // These IDs don't exist in Navidrome — the proxy downloads them on-the-fly.
+        // API calls that use ext- IDs will fail until the proxy's ID mapping is available.
+        const isExtQuery = hasExtIdInQuery(query);
+        if (isExtQuery) {
+            return;
+        }
+
         if (query.state.data !== undefined) {
             console.error(error);
             toast.show({ message: `${error.message}`, type: 'error' });
         }
     },
 });
+
+/** Check whether a query involves an ext- proxy song ID. */
+function hasExtIdInQuery(query: any): boolean {
+    const queryKey = query?.queryKey;
+    if (!Array.isArray(queryKey)) return false;
+
+    return queryKey.some((segment: unknown) => containsExtId(segment));
+}
+
+/** Recursively check a value for an ext- prefix string. */
+function containsExtId(value: unknown): boolean {
+    if (typeof value === 'string' && value.startsWith('ext-')) {
+        return true;
+    }
+    if (Array.isArray(value)) {
+        return value.some((item) => containsExtId(item));
+    }
+    if (value && typeof value === 'object') {
+        return Object.values(value as Record<string, unknown>).some((v) => containsExtId(v));
+    }
+    return false;
+}
 
 const queryConfig: DefaultOptions = {
     mutations: {

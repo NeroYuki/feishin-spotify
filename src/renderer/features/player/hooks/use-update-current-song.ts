@@ -25,6 +25,14 @@ export const useUpdateCurrentSong = () => {
                 return;
             }
 
+            // External enrichment-proxy songs (ext- prefix) don't exist as Navidrome
+            // IDs. Navidrome assigns its own IDs after indexing downloaded files.
+            // The ext- ID will never resolve via getSongDetail, so skip it.
+            // Metadata (duration etc.) is populated from the audio stream instead.
+            if (currentSong.id.startsWith('ext-')) {
+                return;
+            }
+
             try {
                 const queryFilter: SongDetailQuery = { id: currentSong.id };
                 const queryKey = queryKeys.songs.detail(currentSong._serverId, queryFilter);

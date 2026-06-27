@@ -24,6 +24,7 @@ import {
     usePlayerRepeat,
     usePlayerStoreBase,
     usePlayerVolume,
+    updateQueueSong,
 } from '/@/renderer/store';
 import { toast } from '/@/shared/components/toast/toast';
 import { QueueSong } from '/@/shared/types/domain-types';
@@ -368,6 +369,14 @@ export function WebPlayer() {
         };
     }, []);
 
+    // Ref to keep the interval callback from seeing a stale currentSong
+    const currentSongRef = useRef(currentSong);
+    currentSongRef.current = currentSong;
+
+    // Track whether we've already captured duration from the audio element for this song,
+    // so we don't re-update on every tick once the store has the correct value.
+    const capturedDurationRef = useRef<string | null>(null);
+
     useEffect(() => {
         if (localPlayerStatus !== PlayerStatus.PLAYING) {
             return;
@@ -394,6 +403,33 @@ export function WebPlayer() {
                 transitionType === PlayerStyle.GAPLESS
             ) {
                 setTimestamp(Number(currentTime.toFixed(0)));
+            }
+
+            // External enrichment-proxy songs (ext- prefix) don't exist in Navidrome.
+            // Populate duration from the live audio element once enough data has been buffered.
+            const song = currentSongRef.current;
+            if (
+                song &&
+                song.id.startsWith('ext-') &&
+                capturedDurationRef.current !== song.id
+            ) {
+                const audioDuration = internalPlayer.duration;
+                if (
+                    audioDuration &&
+                    isFinite(audioDuration) &&
+                    audioDuration >= 1
+                ) {
+                    updateQueueSong(song.id, {
+                        ...song,
+                        duration: audioDuration * 1000,
+                    });
+                    capturedDurationRef.current = song.id;
+
+                    toast.success({
+                        message: song.name,
+                        title: 'Download complete',
+                    });
+                }
             }
         }, 500);
 

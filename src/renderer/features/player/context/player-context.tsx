@@ -247,6 +247,16 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
 
                 storeActions.addToQueueByType(filteredData, type as Play, playSongId);
             }
+
+            // Show a toast when external proxy songs are queued (downloaded on-the-fly)
+            const extSongs = filteredData.filter((s) => s.id.startsWith('ext-'));
+            if (extSongs.length > 0) {
+                const names = extSongs.map((s) => s.name).join(', ');
+                toast.info({
+                    message: names,
+                    title: `Downloading external source…`,
+                });
+            }
         },
         [storeActions],
     );

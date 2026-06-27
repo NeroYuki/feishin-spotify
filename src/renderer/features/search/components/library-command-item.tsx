@@ -13,6 +13,7 @@ import {
 import { usePlayButtonClick } from '/@/renderer/features/shared/hooks/use-play-button-click';
 import { useCurrentServer } from '/@/renderer/store';
 import { ActionIcon, ActionIconGroup } from '/@/shared/components/action-icon/action-icon';
+import { Icon } from '/@/shared/components/icon/icon';
 import { Flex } from '/@/shared/components/flex/flex';
 import { Text } from '/@/shared/components/text/text';
 import { Tooltip } from '/@/shared/components/tooltip/tooltip';
@@ -43,6 +44,7 @@ interface LibraryCommandItemProps {
     id: string;
     imageId: null | string;
     imageUrl: null | string;
+    isExternal?: boolean;
     isHighlighted?: boolean;
     itemType: LibraryItem;
     song?: Song;
@@ -56,6 +58,7 @@ export const LibraryCommandItem = ({
     id,
     imageId,
     imageUrl,
+    isExternal,
     isHighlighted,
     itemType,
     song,
@@ -167,7 +170,16 @@ export const LibraryCommandItem = ({
                     />
                 </div>
                 <div className={styles.metadataWrapper}>
-                    <Text overflow="hidden">{title}</Text>
+                    <div style={{ alignItems: 'center', display: 'flex', gap: 4 }}>
+                        {isExternal && (
+                            <Icon
+                                color="info"
+                                icon="externalLink"
+                                size="xs"
+                            />
+                        )}
+                        <Text overflow="hidden">{title}</Text>
+                    </div>
                     <Text isMuted overflow="hidden" size="sm">
                         {subtitle}
                     </Text>
