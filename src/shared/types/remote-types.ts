@@ -1,4 +1,4 @@
-import { QueueSong } from '/@/shared/types/domain-types';
+import { QueueSong, Song } from '/@/shared/types/domain-types';
 import { PlayerRepeat, PlayerStatus, SongState } from '/@/shared/types/types';
 
 export interface ClientAuth {
@@ -12,7 +12,10 @@ export type ClientEvent =
     | ClientPosition
     | ClientRating
     | ClientSimpleEvent
-    | ClientVolume;
+    | ClientVolume
+    | ClientQueueRequest
+    | ClientQueueAction
+    | ClientSearch;
 
 export interface ClientFavorite {
     event: 'favorite';
@@ -39,6 +42,30 @@ export interface ClientVolume {
     volume: number;
 }
 
+/** Request the current queue from the server */
+export interface ClientQueueRequest {
+    event: 'queue';
+}
+
+/** Queue manipulation: play, move, remove, or add items */
+export interface ClientQueueAction {
+    event: 'queue-play' | 'queue-move' | 'queue-remove';
+    data?: any;
+}
+
+/** Add items to queue (from search results) */
+export interface ClientQueueAdd {
+    event: 'queue-add';
+    items: Song[];
+    playType: 'now' | 'next' | 'last';
+}
+
+/** Search request */
+export interface ClientSearch {
+    event: 'search';
+    query: string;
+}
+
 export interface ServerError {
     data: string;
     event: 'error';
@@ -55,7 +82,9 @@ export type ServerEvent =
     | ServerShuffle
     | ServerSong
     | ServerState
-    | ServerVolume;
+    | ServerVolume
+    | ServerQueue
+    | ServerSearchResults;
 
 export interface ServerFavorite {
     data: { favorite: boolean; id: string };
@@ -110,4 +139,26 @@ export interface ServerVolume {
 export interface SongUpdateSocket extends Omit<SongState, 'song'> {
     position?: number;
     song?: null | QueueSong;
+}
+
+/** Full queue state sent to remotes */
+export interface QueueData {
+    index: number;
+    items: QueueSong[];
+}
+
+export interface ServerQueue {
+    data: QueueData;
+    event: 'queue';
+}
+
+/** Search results sent to the requesting remote */
+export interface SearchResultData {
+    query: string;
+    songs: Song[];
+}
+
+export interface ServerSearchResults {
+    data: SearchResultData;
+    event: 'search-results';
 }

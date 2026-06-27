@@ -12,7 +12,7 @@ import manifest from './manifest.json';
 import { isLinux } from '/@/main/env';
 import { getMainWindow } from '/@/main/index';
 import { QueueSong } from '/@/shared/types/domain-types';
-import { ClientEvent, ServerEvent } from '/@/shared/types/remote-types';
+import { ClientEvent, QueueData, SearchResultData, ServerEvent } from '/@/shared/types/remote-types';
 import { PlayerRepeat, PlayerStatus, SongState } from '/@/shared/types/types';
 
 let mprisPlayer: any | undefined;
@@ -45,6 +45,10 @@ declare class StatefulWebSocket extends WebSocket {
     auth: boolean;
 }
 
+interface RemoteSongState extends SongState {
+    queue?: QueueData;
+}
+
 let server: Server | undefined;
 let wsServer: undefined | WsServer<typeof StatefulWebSocket>;
 
@@ -54,6 +58,8 @@ const settings: RemoteConfig = {
     port: 4333,
     username: '',
 };
+
+const currentState: RemoteSongState = {};
 
 type SendData = ServerEvent & {
     client: StatefulWebSocket;
@@ -106,8 +112,6 @@ enum Encoding {
 
 const GZIP_REGEX = /\bgzip\b/;
 const ZLIB_REGEX = /bdeflate\b/;
-
-const currentState: SongState = {};
 
 const getEncoding = (encoding: string | string[]): Encoding => {
     const encodingArray = Array.isArray(encoding) ? encoding : [encoding];
@@ -485,6 +489,59 @@ const enableServer = (config: RemoteConfig): Promise<void> => {
                                 getMainWindow()?.webContents.send('request-position', {
                                     position,
                                 });
+                                break;
+                            }
+                            case 'queue': {
+                                // Request queue from renderer — it will reply via 'update-queue'
+                                getMainWindow()?.webContents.send('request-queue');
+                                break;
+                            }
+                            case 'queue-play': {
+                                const { index } = json;
+                                getMainWindow()?.webContents.send('request-queue-action', {
+                                    action: 'play',
+                                    index,
+                                });
+                                break;
+                            }
+                            case 'queue-move': {
+                                const { from, to } = json;
+                                getMainWindow()?.webContents.send('request-queue-action', {
+                                    action: 'move',
+                                    from,
+                                    to,
+                                });
+                                break;
+                            }
+                            case 'queue-remove': {
+                                const { ids } = json;
+                                getMainWindow()?.webContents.send('request-queue-action', {
+                                    action: 'remove',
+                                    ids,
+                                });
+                                break;
+                            }
+                            case 'queue-add': {
+                                const { items, playType } = json;
+                                getMainWindow()?.webContents.send('request-queue-add', {
+                                    items,
+                                    playType,
+                                });
+                                break;
+                            }
+                            case 'search': {
+                                const { query } = json;
+                                // Store the requesting client so we can reply directly
+                                getMainWindow()?.webContents.send('request-search', {
+                                    query,
+                                    requestId: ws._socket?.remoteAddress, // will be replaced with proper ID
+                                });
+                                // Use a unique ID stored on the ws to route response
+                                getMainWindow()?.webContents.send('request-search', {
+                                    query,
+                                    wsClientId: getMainWindow()?.id,
+                                });
+                                break;
                             }
                         }
                     } catch (error) {
@@ -669,4 +726,13 @@ if (mprisPlayer) {
 ipcMain.on('update-position', (_event, position: number) => {
     currentState.position = position;
     broadcast({ data: position, event: 'position' });
+});
+
+ipcMain.on('update-queue', (_event, data: QueueData) => {
+    currentState.queue = data;
+    broadcast({ data, event: 'queue' });
+});
+
+ipcMain.on('search-results', (_event, data: SearchResultData) => {
+    broadcast({ data, event: 'search-results' });
 });

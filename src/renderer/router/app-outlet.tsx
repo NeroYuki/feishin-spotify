@@ -4,6 +4,7 @@ import { shallow } from 'zustand/shallow';
 
 import { normalizeServerUrl } from '/@/renderer/features/action-required/utils/server-lock';
 import { isServerLock } from '/@/renderer/features/action-required/utils/window-properties';
+import { useRemoteBridge } from '/@/renderer/features/remote/hooks/use-remote-bridge';
 import { AppRoute } from '/@/renderer/router/routes';
 import { useAuthStore, useAuthStoreActions } from '/@/renderer/store';
 
@@ -19,6 +20,9 @@ export const AppOutlet = () => {
         shallow,
     );
     const { setCurrentServer, updateServer } = useAuthStoreActions();
+
+    // Bridge remote IPC requests (queue, search) to the renderer
+    useRemoteBridge();
 
     const hasServerLockMismatch = useMemo(() => {
         if (!isServerLock() || !currentServer || !window.SERVER_URL) {

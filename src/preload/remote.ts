@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
 
-import { QueueSong } from '/@/shared/types/domain-types';
+import { QueueData } from '/@/shared/types/remote-types';
+import { QueueSong, Song } from '/@/shared/types/domain-types';
 import { PlayerStatus } from '/@/shared/types/types';
 
 const requestFavorite = (
@@ -84,6 +85,34 @@ const updatePosition = (timeSec: number) => {
     ipcRenderer.send('update-position', timeSec);
 };
 
+const updateQueue = (data: QueueData) => {
+    ipcRenderer.send('update-queue', data);
+};
+
+const searchResults = (data: { query: string; songs: Song[] }) => {
+    ipcRenderer.send('search-results', data);
+};
+
+const requestQueue = (cb: () => void) => {
+    ipcRenderer.on('request-queue', () => cb());
+};
+
+const requestSearch = (cb: (data: { query: string }) => void) => {
+    ipcRenderer.on('request-search', (_, data) => cb(data));
+};
+
+const requestQueueAction = (
+    cb: (data: { action: string; [key: string]: any }) => void,
+) => {
+    ipcRenderer.on('request-queue-action', (_, data) => cb(data));
+};
+
+const requestQueueAdd = (
+    cb: (data: { items: Song[]; playType: 'now' | 'next' | 'last' }) => void,
+) => {
+    ipcRenderer.on('request-queue-add', (_, data) => cb(data));
+};
+
 export const remote = {
     requestFavorite,
     requestPosition,
@@ -103,6 +132,12 @@ export const remote = {
     updateSong,
     updateUsername,
     updateVolume,
+    updateQueue,
+    searchResults,
+    requestQueue,
+    requestSearch,
+    requestQueueAction,
+    requestQueueAdd,
 };
 
 export type Remote = typeof remote;

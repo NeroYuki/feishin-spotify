@@ -6,11 +6,14 @@ import { createWithEqualityFn } from 'zustand/traditional';
 import { LogCategory, logFn } from '/@/renderer/utils/logger';
 import { logMsg } from '/@/renderer/utils/logger-message';
 import { toast } from '/@/shared/components/toast/toast';
-import { ClientEvent, ServerEvent, SongUpdateSocket } from '/@/shared/types/remote-types';
+import { QueueData, ClientEvent, ServerEvent, SongUpdateSocket } from '/@/shared/types/remote-types';
+import { Song } from '/@/shared/types/domain-types';
 
 export interface SettingsSlice extends SettingsState {
     actions: {
         reconnect: () => void;
+        requestQueue: () => void;
+        search: (query: string) => void;
         send: (data: ClientEvent) => void;
         toggleIsDark: () => void;
         toggleShowImage: () => void;
@@ -23,6 +26,10 @@ interface SettingsState {
     isDark: boolean;
     showImage: boolean;
     socket?: StatefulWebSocket;
+    queue: QueueData;
+    searchQuery: string;
+    searchResults: Song[];
+    searchLoading: boolean;
 }
 
 interface StatefulWebSocket extends WebSocket {
@@ -33,6 +40,10 @@ const initialState: SettingsState = {
     connected: false,
     info: {},
     isDark: window.matchMedia('(prefers-color-scheme: dark)').matches,
+    queue: { index: -1, items: [] },
+    searchLoading: false,
+    searchQuery: '',
+    searchResults: [],
     showImage: true,
 };
 
@@ -253,6 +264,20 @@ export const useRemoteStore = createWithEqualityFn<SettingsSlice>()(
                                         set((state) => {
                                             state.info.volume = data;
                                         });
+                                        break;
+                                    }
+                                    case 'queue': {
+                                        set((state) => {
+                                            state.queue = data;
+                                        });
+                                        break;
+                                    }
+                                    case 'search-results': {
+                                        set((state) => {
+                                            state.searchResults = data.songs;
+                                            state.searchLoading = false;
+                                        });
+                                        break;
                                     }
                                 }
                             });
@@ -357,6 +382,23 @@ export const useRemoteStore = createWithEqualityFn<SettingsSlice>()(
                             state.showImage = !state.showImage;
                         });
                     },
+                    requestQueue: () => {
+                        const socket = get().socket;
+                        if (socket?.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({ event: 'queue' }));
+                        }
+                    },
+                    search: (query: string) => {
+                        const socket = get().socket;
+                        set((state) => {
+                            state.searchQuery = query;
+                            state.searchLoading = true;
+                            state.searchResults = [];
+                        });
+                        if (socket?.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({ event: 'search', query }));
+                        }
+                    },
                 },
                 ...initialState,
             })),
@@ -381,6 +423,18 @@ export const useReconnect = () => useRemoteStore((state) => state.actions.reconn
 export const useShowImage = () => useRemoteStore((state) => state.showImage);
 
 export const useSend = () => useRemoteStore((state) => state.actions.send);
+
+export const useQueue = () => useRemoteStore((state) => state.queue);
+
+export const useSearchQuery = () => useRemoteStore((state) => state.searchQuery);
+
+export const useSearchResults = () => useRemoteStore((state) => state.searchResults);
+
+export const useSearchLoading = () => useRemoteStore((state) => state.searchLoading);
+
+export const useRequestQueue = () => useRemoteStore((state) => state.actions.requestQueue);
+
+export const useSearch = () => useRemoteStore((state) => state.actions.search);
 
 export const useToggleDark = () => useRemoteStore((state) => state.actions.toggleIsDark);
 
