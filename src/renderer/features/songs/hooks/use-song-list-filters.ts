@@ -64,6 +64,11 @@ export const useSongListFilters = (listKey?: ItemListKey) => {
         [searchParams],
     );
 
+    const spotifySearch = useMemo(
+        () => parseBooleanParam(searchParams, FILTER_KEYS.SHARED.SPOTIFY_SEARCH),
+        [searchParams],
+    );
+
     const setGenreId = useCallback(
         (value: null | string[]) => {
             runInUrlTransition(() => {
@@ -177,6 +182,7 @@ export const useSongListFilters = (listKey?: ItemListKey) => {
                         prev,
                         {
                             [FILTER_KEYS.SHARED.SEARCH_TERM]: null,
+                            [FILTER_KEYS.SHARED.SPOTIFY_SEARCH]: null,
                             [FILTER_KEYS.SONG._CUSTOM]: null,
                             [FILTER_KEYS.SONG.ARTIST_IDS]: null,
                             [FILTER_KEYS.SONG.FAVORITE]: null,
@@ -197,6 +203,7 @@ export const useSongListFilters = (listKey?: ItemListKey) => {
             [FILTER_KEYS.SHARED.SEARCH_TERM]: searchTerm ?? undefined,
             [FILTER_KEYS.SHARED.SORT_BY]: sortBy ?? undefined,
             [FILTER_KEYS.SHARED.SORT_ORDER]: sortOrder ?? undefined,
+            [FILTER_KEYS.SHARED.SPOTIFY_SEARCH]: spotifySearch ?? undefined,
             [FILTER_KEYS.SONG._CUSTOM]: custom ?? undefined,
             [FILTER_KEYS.SONG.ARTIST_IDS]: artistIds ?? undefined,
             [FILTER_KEYS.SONG.FAVORITE]: favorite ?? undefined,
@@ -216,6 +223,7 @@ export const useSongListFilters = (listKey?: ItemListKey) => {
             hasRating,
             maxYear,
             minYear,
+            spotifySearch,
         ],
     );
 

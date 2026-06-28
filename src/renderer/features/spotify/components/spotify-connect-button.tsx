@@ -23,6 +23,8 @@ export const SpotifyConnectButton = () => {
     const [showManual, setShowManual] = useState(false);
     const [manualUrl, setManualUrl] = useState('');
     const [manualError, setManualError] = useState('');
+    const [authError, setAuthError] = useState('');
+    const [authLoading, setAuthLoading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Register the IPC listener for the OAuth callback (Electron only).
@@ -31,12 +33,26 @@ export const SpotifyConnectButton = () => {
         if (!isElectron()) return;
 
         const handler = (_event: IpcRendererEvent, url: string) => {
-            handleSpotifyCallback(url);
+            handleSpotifyCallback(url).catch((e: unknown) => {
+                setAuthError(e instanceof Error ? e.message : String(e));
+            });
         };
 
         const removeListener = window.api.utils.spotifyAuthCallback(handler);
         return removeListener;
     }, []);
+
+    const handleConnect = async () => {
+        setAuthError('');
+        setAuthLoading(true);
+        try {
+            await startSpotifyAuth();
+        } catch (e: unknown) {
+            setAuthError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setAuthLoading(false);
+        }
+    };
 
     const handleManualSubmit = async () => {
         setManualError('');
@@ -96,9 +112,19 @@ export const SpotifyConnectButton = () => {
 
     return (
         <Stack gap="xs">
-            <Button size="sm" variant="filled" onClick={startSpotifyAuth}>
+            <Button
+                size="sm"
+                variant="filled"
+                loading={authLoading}
+                onClick={handleConnect}
+            >
                 Connect Spotify
             </Button>
+            {authError && (
+                <Text c="red" size="xs">
+                    {authError}
+                </Text>
+            )}
             {import.meta.env.DEV && (
                 <Button size="xs" variant="subtle" onClick={() => setShowManual(true)}>
                     Paste callback URL manually (dev)

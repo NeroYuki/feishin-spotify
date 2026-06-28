@@ -17,6 +17,7 @@ import { Icon } from '/@/shared/components/icon/icon';
 import { Kbd } from '/@/shared/components/kbd/kbd';
 import { Modal } from '/@/shared/components/modal/modal';
 import { Stack } from '/@/shared/components/stack/stack';
+import { Text } from '/@/shared/components/text/text';
 import { TextInput } from '/@/shared/components/text-input/text-input';
 import { useDebouncedValue } from '/@/shared/hooks/use-debounced-value';
 import { useDisclosure } from '/@/shared/hooks/use-disclosure';
@@ -48,8 +49,9 @@ function CommandPaletteSearch({
     searchInputRef,
     setQuery,
 }: CommandPaletteSearchProps) {
-    const [debouncedQuery] = useDebouncedValue(query, 400);
+    const [debouncedQuery] = useDebouncedValue(query, 1000);
     const deferredSearchQuery = useDeferredValue(debouncedQuery ?? '');
+    const [spotifySearch, setSpotifySearch] = useState(false);
     const searchSectionsExpanded = useAppStore(
         (state) => state.commandPaletteSearchSectionsExpanded,
     );
@@ -80,6 +82,22 @@ function CommandPaletteSearch({
                 size="sm"
                 value={query}
             />
+            {query && (
+                <Group mt="xs">
+                    <Button
+                        onClick={() => setSpotifySearch((s) => !s)}
+                        size="compact-xs"
+                        variant={spotifySearch ? 'filled' : 'outline'}
+                    >
+                        {spotifySearch
+                            ? 'Spotify search on'
+                            : 'Search with Spotify'}
+                    </Button>
+                    <Text isMuted size="xs">
+                        or paste a spotify share link here
+                    </Text>
+                </Group>
+            )}
             <Divider my="sm" />
             <Command.List>
                 <Stack gap="xs">
@@ -95,6 +113,7 @@ function CommandPaletteSearch({
                             )
                         }
                         query={query}
+                        spotifySearch={spotifySearch}
                     />
                     <SearchAlbumArtistsSection
                         debouncedQuery={deferredSearchQuery}
@@ -108,6 +127,7 @@ function CommandPaletteSearch({
                             )
                         }
                         query={query}
+                        spotifySearch={spotifySearch}
                     />
                     <SearchSongsSection
                         debouncedQuery={deferredSearchQuery}
@@ -121,6 +141,7 @@ function CommandPaletteSearch({
                             )
                         }
                         query={query}
+                        spotifySearch={spotifySearch}
                     />
                 </Stack>
                 {children}

@@ -24,6 +24,7 @@ interface SearchAlbumsSectionProps {
     onSelectResult: () => void;
     onToggle: () => void;
     query: string;
+    spotifySearch?: boolean;
 }
 
 export function SearchAlbumsSection({
@@ -33,6 +34,7 @@ export function SearchAlbumsSection({
     onSelectResult,
     onToggle,
     query,
+    spotifySearch,
 }: SearchAlbumsSectionProps) {
     const navigate = useNavigate();
     const server = useCurrentServer();
@@ -44,6 +46,7 @@ export function SearchAlbumsSection({
                 enabled: isHome && debouncedQuery !== '' && query !== '',
                 searchTerm: debouncedQuery,
                 serverId: server?.id,
+                spotifySearch,
             }),
         );
 
@@ -52,17 +55,21 @@ export function SearchAlbumsSection({
     const numberOfResults = hasNextPage ? `${albums.length}+` : albums.length;
 
     const handleGoToPage = useCallback(() => {
+        const params: Record<string, string> = {
+            [FILTER_KEYS.SHARED.SEARCH_TERM]: debouncedQuery || query,
+        };
+        if (spotifySearch) {
+            params[FILTER_KEYS.SHARED.SPOTIFY_SEARCH] = 'true';
+        }
         navigate(
             {
                 pathname: AppRoute.LIBRARY_ALBUMS,
-                search: createSearchParams({
-                    [FILTER_KEYS.SHARED.SEARCH_TERM]: debouncedQuery || query,
-                }).toString(),
+                search: createSearchParams(params).toString(),
             },
             { state: { navigationId: nanoid() } },
         );
         onSelectResult();
-    }, [debouncedQuery, navigate, onSelectResult, query]);
+    }, [debouncedQuery, navigate, onSelectResult, query, spotifySearch]);
 
     if (!showSection) return null;
 
@@ -121,6 +128,7 @@ export function SearchAlbumsSection({
                                     id={album.id}
                                     imageId={album.imageId}
                                     imageUrl={album.imageUrl}
+                                    isExternal={album.id.startsWith('ext-')}
                                     isHighlighted={isHighlighted}
                                     itemType={LibraryItem.ALBUM}
                                     subtitle={album.albumArtists

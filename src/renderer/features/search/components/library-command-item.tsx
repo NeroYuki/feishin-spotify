@@ -147,6 +147,12 @@ export const LibraryCommandItem = ({
 
     const showControls = isHighlighted || isHovered;
 
+    const isExternalPlayDisabled = isExternal && (
+        itemType === LibraryItem.ALBUM ||
+        itemType === LibraryItem.ALBUM_ARTIST
+    );
+    const resolvedDisabled = disabled || isExternalPlayDisabled;
+
     return (
         <Flex
             gap="xl"
@@ -174,7 +180,7 @@ export const LibraryCommandItem = ({
                         {isExternal && (
                             <Icon
                                 color="info"
-                                icon="externalLink"
+                                icon={id.startsWith('ext-spotify') ? 'brandSpotify' : 'globe'}
                                 size="xs"
                             />
                         )}
@@ -187,7 +193,7 @@ export const LibraryCommandItem = ({
             </div>
             {showControls && (
                 <ActionIconGroup className={styles.controls}>
-                    <PlayTooltip disabled={disabled} type={Play.NOW}>
+                    <PlayTooltip disabled={resolvedDisabled} type={Play.NOW}>
                         <ActionIcon
                             icon="mediaPlay"
                             size="xs"
@@ -196,12 +202,12 @@ export const LibraryCommandItem = ({
                             {...handlePlayNow.props}
                             onKeyDown={createPlayKeyDownHandler(
                                 Play.NOW,
-                                Boolean(disabled ?? handlePlayNow.props.disabled),
+                                Boolean(resolvedDisabled ?? handlePlayNow.props.disabled),
                                 handlePlay,
                             )}
                         />
                     </PlayTooltip>
-                    <PlayTooltip disabled={disabled} type={Play.NEXT}>
+                    <PlayTooltip disabled={resolvedDisabled} type={Play.NEXT}>
                         <ActionIcon
                             icon="mediaPlayNext"
                             size="xs"
@@ -210,12 +216,12 @@ export const LibraryCommandItem = ({
                             {...handlePlayNext.props}
                             onKeyDown={createPlayKeyDownHandler(
                                 Play.NEXT,
-                                Boolean(disabled ?? handlePlayNext.props.disabled),
+                                Boolean(resolvedDisabled ?? handlePlayNext.props.disabled),
                                 handlePlay,
                             )}
                         />
                     </PlayTooltip>
-                    <PlayTooltip disabled={disabled} type={Play.LAST}>
+                    <PlayTooltip disabled={resolvedDisabled} type={Play.LAST}>
                         <ActionIcon
                             icon="mediaPlayLast"
                             size="xs"
@@ -224,12 +230,12 @@ export const LibraryCommandItem = ({
                             {...handlePlayLast.props}
                             onKeyDown={createPlayKeyDownHandler(
                                 Play.LAST,
-                                Boolean(disabled ?? handlePlayLast.props.disabled),
+                                Boolean(resolvedDisabled ?? handlePlayLast.props.disabled),
                                 handlePlay,
                             )}
                         />
                     </PlayTooltip>
-                    <Tooltip disabled={disabled} label={t('action.addToPlaylist')}>
+                    <Tooltip disabled={resolvedDisabled} label={t('action.addToPlaylist')}>
                         <ActionIcon
                             icon="playlistAdd"
                             onClick={(event) => {
@@ -241,7 +247,7 @@ export const LibraryCommandItem = ({
                                 if (e.key === ' ' || e.key === 'Enter') {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    if (!disabled) {
+                                    if (!resolvedDisabled) {
                                         handleOpenPlaylistModal();
                                     }
                                 } else if (e.key === 'Tab') {

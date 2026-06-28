@@ -5,6 +5,7 @@ import { normalizeSpotifyTrack } from '/@/renderer/api/spotify/spotify-normalize
 import { spotifyApiClient } from '/@/renderer/features/spotify/api/spotify-api-client';
 import type { GenreArtist } from '/@/renderer/features/spotify/api/everynoise-types';
 import { usePlayer } from '/@/renderer/features/player/context/player-context';
+import { useCurrentServer } from '/@/renderer/store';
 import type { PreviewPlayerState } from '/@/renderer/features/spotify/hooks/use-genre-preview-player';
 import { AppRoute } from '/@/renderer/router/routes';
 import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
@@ -12,6 +13,7 @@ import { Group } from '/@/shared/components/group/group';
 import { Icon } from '/@/shared/components/icon/icon';
 import { Stack } from '/@/shared/components/stack/stack';
 import { Text } from '/@/shared/components/text/text';
+import { ServerType } from '/@/shared/types/domain-types';
 import { Play } from '/@/shared/types/types';
 import { toast } from '/@/shared/components/toast/toast';
 
@@ -29,9 +31,34 @@ interface Props {
 }
 
 export function GenreArtistList({ artists, playerState, onPlayPreview }: Props) {
+    const server = useCurrentServer();
     const navigate = useNavigate();
     const player = usePlayer();
     const [queuingIndex, setQueuingIndex] = useState<number | null>(null);
+
+    const handleDownload = useCallback(
+        async (entry: GenreArtist) => {
+            // Same as command palette external song play: fetch track, normalize
+            // with ext-spotify- ID, and play — player streams via /rest/stream.view.
+            // Override _serverType so the web player handles it instead of Spotify player.
+            try {
+                const track = await spotifyApiClient.getTrack(entry.track_id);
+                const song = normalizeSpotifyTrack(track);
+                const extSong = {
+                    ...song,
+                    _serverId: server?.id || '',
+                    _serverType: ServerType.NAVIDROME as const,
+                    container: 'navidrome' as const,
+                    id: `ext-spotify-${entry.track_id}`,
+                };
+                player.addToQueueByData([extSong], Play.NOW);
+                toast.show({ message: `Downloading "${song.name}"`, title: 'Download' });
+            } catch {
+                toast.error({ message: 'Failed to start download' });
+            }
+        },
+        [player],
+    );
 
     const handleAddToQueue = useCallback(
         async (entry: GenreArtist, index: number) => {
@@ -128,6 +155,18 @@ export function GenreArtistList({ artists, playerState, onPlayPreview }: Props) 
                         >
                             <Icon icon="user" size="sm" />
                         </ActionIcon>
+
+                        {/* Download (only if track_id available) */}
+                        {entry.track_id && (
+                            <ActionIcon
+                                size="sm"
+                                tooltip={{ label: 'Download' }}
+                                variant="subtle"
+                                onClick={() => handleDownload(entry)}
+                            >
+                                <Icon icon="download" size="sm" />
+                            </ActionIcon>
+                        )}
 
                         {/* Add to queue */}
                         <ActionIcon

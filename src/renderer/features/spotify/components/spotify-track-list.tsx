@@ -4,13 +4,14 @@ import { useCallback } from 'react';
 import { ItemImage } from '/@/renderer/components/item-image/item-image';
 import { SpotifyLikeButton } from '/@/renderer/features/spotify/components/spotify-like-button';
 import { usePlayer } from '/@/renderer/features/player/context/player-context';
+import { useCurrentServer } from '/@/renderer/store';
 import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
 import { Button } from '/@/shared/components/button/button';
 import { Group } from '/@/shared/components/group/group';
 import { Icon } from '/@/shared/components/icon/icon';
 import { Stack } from '/@/shared/components/stack/stack';
 import { Text } from '/@/shared/components/text/text';
-import { LibraryItem, Song } from '/@/shared/types/domain-types';
+import { LibraryItem, ServerType, Song } from '/@/shared/types/domain-types';
 import { Play } from '/@/shared/types/types';
 
 interface SpotifyTrackListProps {
@@ -21,13 +22,28 @@ interface SpotifyTrackListProps {
 
 interface TrackRowProps {
     index: number;
+    serverId: string | undefined;
     song: Song;
     onAlbumClick?: (albumId: string) => void;
     onArtistClick?: (artistId: string) => void;
     onPlay: (song: Song, playType: Play) => void;
 }
 
-const TrackRow = ({ index, song, onAlbumClick, onArtistClick, onPlay }: TrackRowProps) => {
+const TrackRow = ({ index, serverId, song, onAlbumClick, onArtistClick, onPlay }: TrackRowProps) => {
+    const handleDownload = useCallback(() => {
+        if (!serverId) return;
+        // Same as command palette external song play: add to queue with ext-spotify- ID,
+        // the player will stream via /rest/stream.view with no Save As dialog.
+        // Override _serverId and _serverType so the web player uses the navidrome proxy.
+        const extSong: Song = {
+            ...song,
+            _serverId: serverId,
+            _serverType: ServerType.NAVIDROME,
+            container: 'navidrome' as Song['container'],
+            id: `ext-spotify-${song.id}`,
+        };
+        onPlay(extSong, Play.NOW);
+    }, [song, serverId, onPlay]);
     return (
         <Group
             align="center"
@@ -114,6 +130,17 @@ const TrackRow = ({ index, song, onAlbumClick, onArtistClick, onPlay }: TrackRow
                     variant="subtle"
                     onClick={() => onPlay(song, Play.LAST)}
                 />
+                <ActionIcon
+                    icon="download"
+                    iconProps={{ size: 'sm' }}
+                    size="xs"
+                    tooltip={{ label: 'Download', openDelay: 300 }}
+                    variant="subtle"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        handleDownload();
+                    }}
+                />
             </Group>
         </Group>
     );
@@ -121,6 +148,7 @@ const TrackRow = ({ index, song, onAlbumClick, onArtistClick, onPlay }: TrackRow
 
 export const SpotifyTrackList = ({ onAlbumClick, onArtistClick, songs }: SpotifyTrackListProps) => {
     const player = usePlayer();
+    const server = useCurrentServer();
 
     const handlePlay = useCallback(
         (song: Song, playType: Play) => {
@@ -161,6 +189,7 @@ export const SpotifyTrackList = ({ onAlbumClick, onArtistClick, songs }: Spotify
                 <TrackRow
                     key={song.id}
                     index={index}
+                    serverId={server?.id}
                     onAlbumClick={onAlbumClick}
                     onArtistClick={onArtistClick}
                     song={song}

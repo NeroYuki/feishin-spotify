@@ -366,6 +366,7 @@ const search3Parameters = z.object({
     query: z.string().optional(),
     songCount: z.number().optional(),
     songOffset: z.number().optional(),
+    spotifySearch: z.boolean().optional(),
 });
 
 const randomSongListParameters = z.object({

@@ -24,6 +24,7 @@ interface SearchAlbumArtistsSectionProps {
     onSelectResult: () => void;
     onToggle: () => void;
     query: string;
+    spotifySearch?: boolean;
 }
 
 export function SearchAlbumArtistsSection({
@@ -33,6 +34,7 @@ export function SearchAlbumArtistsSection({
     onSelectResult,
     onToggle,
     query,
+    spotifySearch,
 }: SearchAlbumArtistsSectionProps) {
     const navigate = useNavigate();
     const server = useCurrentServer();
@@ -44,6 +46,7 @@ export function SearchAlbumArtistsSection({
                 enabled: isHome && debouncedQuery !== '' && query !== '',
                 searchTerm: debouncedQuery,
                 serverId: server?.id,
+                spotifySearch,
             }),
         );
 
@@ -52,17 +55,21 @@ export function SearchAlbumArtistsSection({
     const numberOfResults = hasNextPage ? `${artists.length}+` : artists.length;
 
     const handleGoToPage = useCallback(() => {
+        const params: Record<string, string> = {
+            [FILTER_KEYS.SHARED.SEARCH_TERM]: debouncedQuery || query,
+        };
+        if (spotifySearch) {
+            params[FILTER_KEYS.SHARED.SPOTIFY_SEARCH] = 'true';
+        }
         navigate(
             {
                 pathname: AppRoute.LIBRARY_ALBUM_ARTISTS,
-                search: createSearchParams({
-                    [FILTER_KEYS.SHARED.SEARCH_TERM]: debouncedQuery || query,
-                }).toString(),
+                search: createSearchParams(params).toString(),
             },
             { state: { navigationId: nanoid() } },
         );
         onSelectResult();
-    }, [debouncedQuery, navigate, onSelectResult, query]);
+    }, [debouncedQuery, navigate, onSelectResult, query, spotifySearch]);
 
     if (!showSection) return null;
 
@@ -121,6 +128,7 @@ export function SearchAlbumArtistsSection({
                                     id={artist.id}
                                     imageId={artist.imageId}
                                     imageUrl={artist.imageUrl}
+                                    isExternal={artist.id.startsWith('ext-')}
                                     isHighlighted={isHighlighted}
                                     itemType={LibraryItem.ALBUM_ARTIST}
                                     subtitle={

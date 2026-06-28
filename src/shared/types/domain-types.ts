@@ -506,6 +506,7 @@ export interface AlbumListQuery extends AlbumListNavidromeQuery, BaseQuery<Album
     minYear?: number;
     musicFolderId?: string | string[];
     searchTerm?: string;
+    spotifySearch?: boolean;
     startIndex: number;
 }
 
@@ -642,6 +643,7 @@ export interface SongListQuery extends BaseQuery<SongListSort> {
     minYear?: number;
     musicFolderId?: string | string[];
     searchTerm?: string;
+    spotifySearch?: boolean;
     startIndex: number;
 }
 
@@ -749,6 +751,7 @@ export interface AlbumArtistListQuery extends BaseQuery<AlbumArtistListSort> {
     limit?: number;
     musicFolderId?: string | string[];
     searchTerm?: string;
+    spotifySearch?: boolean;
     startIndex: number;
 }
 
@@ -1406,6 +1409,7 @@ export type SearchQuery = {
     query?: string;
     songLimit?: number;
     songStartIndex?: number;
+    spotifySearch?: boolean;
 };
 
 export type SearchResponse = {

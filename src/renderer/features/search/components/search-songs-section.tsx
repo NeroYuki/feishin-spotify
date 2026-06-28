@@ -2,8 +2,9 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { nanoid } from 'nanoid/non-secure';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { createSearchParams, generatePath, useNavigate } from 'react-router';
+import { createSearchParams, useNavigate } from 'react-router';
 
+import { usePlayer } from '/@/renderer/features/player/context/player-context';
 import { searchQueries } from '/@/renderer/features/search/api/search-api';
 import { CollapsibleCommandGroup } from '/@/renderer/features/search/components/collapsible-command-group';
 import { CommandItemSelectable } from '/@/renderer/features/search/components/command-item-selectable';
@@ -16,6 +17,7 @@ import { Button } from '/@/shared/components/button/button';
 import { Spinner } from '/@/shared/components/spinner/spinner';
 import { Text } from '/@/shared/components/text/text';
 import { LibraryItem } from '/@/shared/types/domain-types';
+import { Play } from '/@/shared/types/types';
 
 interface SearchSongsSectionProps {
     debouncedQuery: string;
@@ -24,6 +26,7 @@ interface SearchSongsSectionProps {
     onSelectResult: () => void;
     onToggle: () => void;
     query: string;
+    spotifySearch?: boolean;
 }
 
 export function SearchSongsSection({
@@ -33,7 +36,9 @@ export function SearchSongsSection({
     onSelectResult,
     onToggle,
     query,
+    spotifySearch,
 }: SearchSongsSectionProps) {
+    const { addToQueueByData } = usePlayer();
     const navigate = useNavigate();
     const server = useCurrentServer();
     const { t } = useTranslation();
@@ -44,6 +49,7 @@ export function SearchSongsSection({
                 enabled: isHome && debouncedQuery !== '' && query !== '',
                 searchTerm: debouncedQuery,
                 serverId: server?.id,
+                spotifySearch,
             }),
         );
 
@@ -52,17 +58,21 @@ export function SearchSongsSection({
     const numberOfResults = hasNextPage ? `${songs.length}+` : songs.length;
 
     const handleGoToPage = useCallback(() => {
+        const params: Record<string, string> = {
+            [FILTER_KEYS.SHARED.SEARCH_TERM]: debouncedQuery || query,
+        };
+        if (spotifySearch) {
+            params[FILTER_KEYS.SHARED.SPOTIFY_SEARCH] = 'true';
+        }
         navigate(
             {
                 pathname: AppRoute.LIBRARY_SONGS,
-                search: createSearchParams({
-                    [FILTER_KEYS.SHARED.SEARCH_TERM]: debouncedQuery || query,
-                }).toString(),
+                search: createSearchParams(params).toString(),
             },
             { state: { navigationId: nanoid() } },
         );
         onSelectResult();
-    }, [debouncedQuery, navigate, onSelectResult, query]);
+    }, [debouncedQuery, navigate, onSelectResult, query, spotifySearch]);
 
     if (!showSection) return null;
 
@@ -106,11 +116,7 @@ export function SearchSongsSection({
                         <CommandItemSelectable
                             key={`search-song-${song.id}-${index}`}
                             onSelect={() => {
-                                navigate(
-                                    generatePath(AppRoute.LIBRARY_ALBUMS_DETAIL, {
-                                        albumId: song.albumId,
-                                    }),
-                                );
+                                addToQueueByData([song], Play.NOW);
                                 onSelectResult();
                             }}
                             value={`search-song-${song.id}`}

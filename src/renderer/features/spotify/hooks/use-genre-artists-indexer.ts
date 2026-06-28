@@ -65,7 +65,7 @@ export function useGenreArtistsIndexer(): IndexerState {
         async function start() {
             // Check if already indexed
             const version = await idbGet<string>(STORE_META, 'dataVersion').catch(() => undefined);
-            if (version === 'v1-2026') {
+            if (version === 'v2-2026-07') {
                 if (!cancelled) setState((s) => ({ ...s, isReady: true }));
                 return;
             }

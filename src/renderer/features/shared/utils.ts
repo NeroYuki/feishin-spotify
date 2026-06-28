@@ -57,6 +57,7 @@ enum SharedFilterKeys {
     SEARCH_TERM = 'searchTerm',
     SORT_BY = 'sortBy',
     SORT_ORDER = 'sortOrder',
+    SPOTIFY_SEARCH = 'spotifySearch',
 }
 
 enum SongFilterKeys {

@@ -84,7 +84,7 @@ async function importData(db: IDBDatabase, dataVersion: string, dataUrl: string)
 
 // We embed the data version as a constant derived from the file's expected size/hash.
 // For simplicity we use a hardcoded string; bump this when the source data changes.
-const CURRENT_DATA_VERSION = 'v1-2026';
+const CURRENT_DATA_VERSION = 'v2-2026-07';
 
 self.onmessage = async (e: MessageEvent) => {
     if (e.data?.type !== 'start') return;

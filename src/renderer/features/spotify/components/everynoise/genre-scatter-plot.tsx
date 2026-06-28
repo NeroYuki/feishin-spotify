@@ -54,7 +54,6 @@ export function GenreScatterPlot({
     const textWidthCacheRef = useRef<Map<string, number>>(new Map());
     const colourCacheRef = useRef<Map<string, string>>(new Map());
     const needsRedrawRef = useRef(true);
-    const hasInitRef = useRef(false);
     // Theme-aware colors used in the render loop
     const bgColorRef = useRef('#111115');
     const labelHighlightRef = useRef('#000000');
@@ -80,14 +79,25 @@ export function GenreScatterPlot({
         needsRedrawRef.current = true;
     }, [colorScheme]);
 
-    // Initial fit-to-screen — waits until ResizeObserver gives us real dimensions
+    // Initial fit-to-screen — uses canvas CSS dimensions, not React prop dimensions,
+    // so it works immediately even if the container measurement hasn't propagated yet.
+    const initRef = useRef(false);
     useEffect(() => {
-        if (hasInitRef.current || width <= 0 || height <= 0) return;
-        hasInitRef.current = true;
-        const fitScale = Math.min(width / WORLD_W, height / WORLD_H);
-        const offsetX = (width - WORLD_W * fitScale) / 2;
-        const offsetY = (height - WORLD_H * fitScale) / 2;
-        transformRef.current = { offsetX, offsetY, scale: fitScale };
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (w <= 0 || h <= 0) return;
+        if (!initRef.current) {
+            initRef.current = true;
+            const fitScale = Math.min(w / WORLD_W, h / WORLD_H);
+            const offsetX = (w - WORLD_W * fitScale) / 2;
+            const offsetY = (h - WORLD_H * fitScale) / 2;
+            transformRef.current = { offsetX, offsetY, scale: fitScale };
+        }
+        // Always sync canvas pixmap to CSS size
+        canvas.width = w;
+        canvas.height = h;
         needsRedrawRef.current = true;
     }, [width, height]);
 
@@ -118,6 +128,10 @@ export function GenreScatterPlot({
         const t = transformRef.current;
         const W = canvas.width;
         const H = canvas.height;
+        if (W <= 0 || H <= 0) {
+            needsRedrawRef.current = true;
+            return;
+        }
         const genreList = genresRef.current;
 
         const selected = selectedRef.current;
@@ -381,9 +395,9 @@ export function GenreScatterPlot({
     return (
         <canvas
             ref={canvasRef}
-            height={height}
-            style={{ cursor: 'crosshair', display: 'block' }}
-            width={width}
+            height={height || 1}
+            style={{ cursor: 'crosshair', display: 'block', height: '100%', width: '100%' }}
+            width={width || 1}
             onPointerDown={onPointerDown}
             onPointerLeave={() => wrappedOnHover(null, 0, 0)}
             onPointerMove={onPointerMove}

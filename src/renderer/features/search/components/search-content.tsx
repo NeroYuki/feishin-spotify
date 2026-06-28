@@ -10,6 +10,7 @@ import {
     OverrideAlbumArtistListQuery,
 } from '/@/renderer/features/artists/components/album-artist-list-content';
 import { AnimatedPage } from '/@/renderer/features/shared/components/animated-page';
+import { FILTER_KEYS } from '/@/renderer/features/shared/utils';
 import {
     OverrideSongListQuery,
     SongListView,
@@ -47,6 +48,7 @@ const AlbumSearch = () => {
         searchTerm: searchParams.get('query') || '',
         sortBy: AlbumListSort.NAME,
         sortOrder: SortOrder.ASC,
+        spotifySearch: searchParams.get(FILTER_KEYS.SHARED.SPOTIFY_SEARCH) === 'true',
     };
 
     return (
@@ -69,6 +71,7 @@ const SongSearch = () => {
         searchTerm: searchParams.get('query') || '',
         sortBy: SongListSort.NAME,
         sortOrder: SortOrder.ASC,
+        spotifySearch: searchParams.get(FILTER_KEYS.SHARED.SPOTIFY_SEARCH) === 'true',
     };
 
     return (
@@ -91,6 +94,7 @@ const ArtistSearch = () => {
         searchTerm: searchParams.get('query') || '',
         sortBy: AlbumArtistListSort.NAME,
         sortOrder: SortOrder.ASC,
+        spotifySearch: searchParams.get(FILTER_KEYS.SHARED.SPOTIFY_SEARCH) === 'true',
     };
 
     return (

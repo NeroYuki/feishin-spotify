@@ -588,6 +588,7 @@ export const SubsonicController: InternalControllerEndpoint = {
                     query: query.searchTerm || '',
                     songCount: 0,
                     songOffset: 0,
+                    spotifySearch: query.spotifySearch,
                 },
             });
 
@@ -1443,6 +1444,7 @@ export const SubsonicController: InternalControllerEndpoint = {
                     query: query.searchTerm || '',
                     songCount: query.limit,
                     songOffset: query.startIndex,
+                    spotifySearch: query.spotifySearch,
                 },
             });
 
@@ -1597,6 +1599,7 @@ export const SubsonicController: InternalControllerEndpoint = {
                 query: query.searchTerm || '',
                 songCount: query.limit,
                 songOffset: query.startIndex,
+                spotifySearch: query.spotifySearch,
             },
         });
 
@@ -2261,6 +2264,7 @@ export const SubsonicController: InternalControllerEndpoint = {
                 query: query.query,
                 songCount: query.songLimit,
                 songOffset: query.songStartIndex,
+                spotifySearch: query.spotifySearch,
             },
         });
 

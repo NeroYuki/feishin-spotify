@@ -24,8 +24,9 @@ export const searchQueries = {
         enabled?: boolean;
         searchTerm: string;
         serverId: string | undefined;
+        spotifySearch?: boolean;
     }) => {
-        const { enabled = true, searchTerm, serverId } = args;
+        const { enabled = true, searchTerm, serverId, spotifySearch } = args;
         return infiniteQueryOptions({
             enabled: Boolean(serverId && searchTerm && enabled),
             getNextPageParam: (lastPage: SearchResponse, allPages: SearchResponse[]) => {
@@ -47,18 +48,20 @@ export const searchQueries = {
                         query: searchTerm,
                         songLimit: 0,
                         songStartIndex: 0,
+                        spotifySearch,
                     },
                 });
             },
-            queryKey: queryKeys.search.infiniteList(serverId ?? '', 'albumArtists', searchTerm),
+            queryKey: queryKeys.search.infiniteList(serverId ?? '', 'albumArtists', searchTerm, spotifySearch),
         });
     },
     searchAlbumsInfinite: (args: {
         enabled?: boolean;
         searchTerm: string;
         serverId: string | undefined;
+        spotifySearch?: boolean;
     }) => {
-        const { enabled = true, searchTerm, serverId } = args;
+        const { enabled = true, searchTerm, serverId, spotifySearch } = args;
         return infiniteQueryOptions({
             enabled: Boolean(serverId && searchTerm && enabled),
             getNextPageParam: (lastPage: SearchResponse, allPages: SearchResponse[]) => {
@@ -80,18 +83,20 @@ export const searchQueries = {
                         query: searchTerm,
                         songLimit: 0,
                         songStartIndex: 0,
+                        spotifySearch,
                     },
                 });
             },
-            queryKey: queryKeys.search.infiniteList(serverId ?? '', 'albums', searchTerm),
+            queryKey: queryKeys.search.infiniteList(serverId ?? '', 'albums', searchTerm, spotifySearch),
         });
     },
     searchSongsInfinite: (args: {
         enabled?: boolean;
         searchTerm: string;
         serverId: string | undefined;
+        spotifySearch?: boolean;
     }) => {
-        const { enabled = true, searchTerm, serverId } = args;
+        const { enabled = true, searchTerm, serverId, spotifySearch } = args;
         return infiniteQueryOptions({
             enabled: Boolean(serverId && searchTerm && enabled),
             getNextPageParam: (lastPage: SearchResponse, allPages: SearchResponse[]) => {
@@ -113,10 +118,11 @@ export const searchQueries = {
                         query: searchTerm,
                         songLimit: SEARCH_PAGE_SIZE,
                         songStartIndex: startIndex,
+                        spotifySearch,
                     },
                 });
             },
-            queryKey: queryKeys.search.infiniteList(serverId ?? '', 'songs', searchTerm),
+            queryKey: queryKeys.search.infiniteList(serverId ?? '', 'songs', searchTerm, spotifySearch),
         });
     },
 };

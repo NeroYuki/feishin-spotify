@@ -271,6 +271,12 @@ export const NavidromeController: InternalControllerEndpoint = {
     getAlbumArtistDetail: async (args) => {
         const { apiClientProps, query } = args;
 
+        // External enrichment-proxy artists (ext- prefix) don't exist in Navidrome
+        // native API. Delegate to Subsonic endpoint which goes through the proxy.
+        if (query.id?.startsWith('ext-')) {
+            return SubsonicController.getAlbumArtistDetail(args);
+        }
+
         const res = await ndApiClient(apiClientProps).getAlbumArtistDetail({
             params: {
                 id: query.id,
@@ -368,6 +374,12 @@ export const NavidromeController: InternalControllerEndpoint = {
         }).then((result) => result!.totalRecordCount!),
     getAlbumDetail: async (args) => {
         const { apiClientProps, query } = args;
+
+        // External enrichment-proxy albums (ext- prefix) don't exist in Navidrome
+        // native API. Delegate to Subsonic endpoint which goes through the proxy.
+        if (query.id?.startsWith('ext-')) {
+            return SubsonicController.getAlbumDetail(args);
+        }
 
         const albumRes = await ndApiClient(apiClientProps).getAlbumDetail({
             params: {

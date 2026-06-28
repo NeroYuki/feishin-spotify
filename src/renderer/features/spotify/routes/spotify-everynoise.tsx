@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { useGenreData } from '/@/renderer/features/spotify/hooks/use-genre-data';
 import { useGenreArtistsIndexer } from '/@/renderer/features/spotify/hooks/use-genre-artists-indexer';
@@ -23,15 +23,21 @@ import { Group } from '/@/shared/components/group/group';
 function useContainerSize(ref: React.RefObject<HTMLDivElement | null>) {
     const [size, setSize] = useState({ height: 0, width: 0 });
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         const el = ref.current;
         if (!el) return;
-        const observer = new ResizeObserver(([entry]) => {
-            const { width, height } = entry.contentRect;
-            setSize({ height, width });
-        });
+
+        const measure = () => {
+            const rect = el.getBoundingClientRect();
+            setSize((prev) => {
+                if (prev.width === rect.width && prev.height === rect.height) return prev;
+                return { height: rect.height, width: rect.width };
+            });
+        };
+
+        measure();
+        const observer = new ResizeObserver(measure);
         observer.observe(el);
-        setSize({ height: el.clientHeight, width: el.clientWidth });
         return () => observer.disconnect();
     }, [ref]);
 

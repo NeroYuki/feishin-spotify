@@ -163,8 +163,17 @@ export async function startSpotifyAuth(): Promise<void> {
     console.log('[spotify] authUrl =', authUrl);
 
     if (isElectron()) {
-        // Open in external browser — deep link will be sent back via IPC
-        window.api.utils.openExternal(authUrl);
+        // Try the preload bridge first, fall back to window.open
+        try {
+            if (window?.api?.utils?.openExternal) {
+                window.api.utils.openExternal(authUrl);
+            } else {
+                throw new Error('preload not available');
+            }
+        } catch {
+            console.warn('[spotify] window.api.utils.openExternal not available, falling back to window.open');
+            window.open(authUrl, '_blank');
+        }
     } else {
         window.location.href = authUrl;
     }
