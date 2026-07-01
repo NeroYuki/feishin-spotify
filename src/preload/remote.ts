@@ -89,16 +89,56 @@ const updateQueue = (data: QueueData) => {
     ipcRenderer.send('update-queue', data);
 };
 
-const searchResults = (data: { query: string; songs: Song[] }) => {
+const searchResults = (data: { query: string; songs: Song[]; wsClientId?: string }) => {
     ipcRenderer.send('search-results', data);
+};
+
+const suggestSearchResults = (data: { query: string; songs: Song[]; wsClientId?: string }) => {
+    ipcRenderer.send('suggest-search-results', data);
+};
+
+const similarSongsResults = (data: { seedSong: Song; songs: Song[]; truncated?: boolean; wsClientId?: string }) => {
+    ipcRenderer.send('similar-songs-results', data);
+};
+
+const sameArtistResults = (data: { artistName: string; songs: Song[]; truncated?: boolean; wsClientId?: string }) => {
+    ipcRenderer.send('same-artist-results', data);
+};
+
+const sameAlbumResults = (data: { albumName: string; songs: Song[]; truncated?: boolean; wsClientId?: string }) => {
+    ipcRenderer.send('same-album-results', data);
+};
+
+const randomSongsResults = (data: { songs: Song[]; wsClientId?: string }) => {
+    ipcRenderer.send('random-songs-results', data);
 };
 
 const requestQueue = (cb: () => void) => {
     ipcRenderer.on('request-queue', () => cb());
 };
 
-const requestSearch = (cb: (data: { query: string }) => void) => {
+const requestSearch = (cb: (data: { query: string; spotifySearch?: boolean; wsClientId?: string }) => void) => {
     ipcRenderer.on('request-search', (_, data) => cb(data));
+};
+
+const requestSuggestSearch = (cb: (data: { query: string; wsClientId?: string }) => void) => {
+    ipcRenderer.on('request-suggest-search', (_, data) => cb(data));
+};
+
+const requestSimilarSongs = (cb: (data: { songId: string; song: Song; wsClientId?: string }) => void) => {
+    ipcRenderer.on('request-similar-songs', (_, data) => cb(data));
+};
+
+const requestSameArtist = (cb: (data: { artistName: string; artistId?: string; wsClientId?: string }) => void) => {
+    ipcRenderer.on('request-same-artist', (_, data) => cb(data));
+};
+
+const requestSameAlbum = (cb: (data: { albumName: string; albumId?: string; wsClientId?: string }) => void) => {
+    ipcRenderer.on('request-same-album', (_, data) => cb(data));
+};
+
+const requestRandomSongs = (cb: (data: { size: number; wsClientId?: string }) => void) => {
+    ipcRenderer.on('request-random-songs', (_, data) => cb(data));
 };
 
 const requestQueueAction = (
@@ -134,8 +174,18 @@ export const remote = {
     updateVolume,
     updateQueue,
     searchResults,
+    suggestSearchResults,
+    similarSongsResults,
+    sameArtistResults,
+    sameAlbumResults,
+    randomSongsResults,
     requestQueue,
     requestSearch,
+    requestSuggestSearch,
+    requestSimilarSongs,
+    requestSameArtist,
+    requestSameAlbum,
+    requestRandomSongs,
     requestQueueAction,
     requestQueueAdd,
 };

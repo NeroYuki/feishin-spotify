@@ -1,5 +1,4 @@
 import { AppShell, Flex, Grid, Image, SegmentedControl } from '@mantine/core';
-import { useState } from 'react';
 
 import { ImageButton } from '/@/remote/components/buttons/image-button';
 import { ReconnectButton } from '/@/remote/components/buttons/reconnect-button';
@@ -7,16 +6,19 @@ import { ThemeButton } from '/@/remote/components/buttons/theme-button';
 import { QueueView } from '/@/remote/components/queue-view';
 import { RemoteContainer } from '/@/remote/components/remote-container';
 import { SearchView } from '/@/remote/components/search-view';
-import { useConnected } from '/@/remote/store';
+import { SuggestionsView } from '/@/remote/components/suggestions-view';
+import { SameArtistAlbumModal } from '/@/remote/components/same-artist-album-modal';
+import { useActiveTab, useConnected, useSetActiveTab } from '/@/remote/store';
 import { Center } from '/@/shared/components/center/center';
 import { Group } from '/@/shared/components/group/group';
 import { Spinner } from '/@/shared/components/spinner/spinner';
 
-type Tab = 'now-playing' | 'queue' | 'search';
+type Tab = 'now-playing' | 'queue' | 'search' | 'suggestions';
 
 export const Shell = () => {
     const connected = useConnected();
-    const [activeTab, setActiveTab] = useState<Tab>('now-playing');
+    const activeTab = useActiveTab() as Tab;
+    const setActiveTab = useSetActiveTab();
 
     return (
         <AppShell h="100vh" padding="md" w="100vw">
@@ -49,6 +51,7 @@ export const Shell = () => {
                             { label: 'Now Playing', value: 'now-playing' },
                             { label: 'Queue', value: 'queue' },
                             { label: 'Search', value: 'search' },
+                            { label: 'Suggestions', value: 'suggestions' },
                         ]}
                         fullWidth
                         onChange={(value) => setActiveTab(value as Tab)}
@@ -63,6 +66,8 @@ export const Shell = () => {
                         {activeTab === 'now-playing' && <RemoteContainer />}
                         {activeTab === 'queue' && <QueueView />}
                         {activeTab === 'search' && <SearchView />}
+                        {activeTab === 'suggestions' && <SuggestionsView />}
+                        <SameArtistAlbumModal />
                     </>
                 ) : (
                     <Center h="100vh" w="100vw">

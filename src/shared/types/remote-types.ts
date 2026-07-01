@@ -15,7 +15,13 @@ export type ClientEvent =
     | ClientVolume
     | ClientQueueRequest
     | ClientQueueAction
-    | ClientSearch;
+    | ClientQueueAdd
+    | ClientSearch
+    | ClientSuggestSearch
+    | ClientSimilarSongs
+    | ClientSameArtist
+    | ClientSameAlbum
+    | ClientRandomSongs;
 
 export interface ClientFavorite {
     event: 'favorite';
@@ -48,10 +54,10 @@ export interface ClientQueueRequest {
 }
 
 /** Queue manipulation: play, move, remove, or add items */
-export interface ClientQueueAction {
-    event: 'queue-play' | 'queue-move' | 'queue-remove';
-    data?: any;
-}
+export type ClientQueueAction =
+    | { event: 'queue-play'; index: number }
+    | { event: 'queue-move'; from: number; to: number }
+    | { event: 'queue-remove'; ids: string[] };
 
 /** Add items to queue (from search results) */
 export interface ClientQueueAdd {
@@ -64,6 +70,40 @@ export interface ClientQueueAdd {
 export interface ClientSearch {
     event: 'search';
     query: string;
+    spotifySearch?: boolean;
+}
+
+/** Lightweight search for autocomplete (separate from main search) */
+export interface ClientSuggestSearch {
+    event: 'suggest-search';
+    query: string;
+}
+
+/** Request similar songs (track radio) for a given track */
+export interface ClientSimilarSongs {
+    event: 'similar-songs';
+    songId: string;
+    song: Song;
+}
+
+/** Request songs from the same artist */
+export interface ClientSameArtist {
+    event: 'same-artist';
+    artistName: string;
+    artistId?: string;
+}
+
+/** Request songs from the same album */
+export interface ClientSameAlbum {
+    event: 'same-album';
+    albumName: string;
+    albumId?: string;
+}
+
+/** Request random songs */
+export interface ClientRandomSongs {
+    event: 'random-songs';
+    size?: number;
 }
 
 export interface ServerError {
@@ -84,7 +124,12 @@ export type ServerEvent =
     | ServerState
     | ServerVolume
     | ServerQueue
-    | ServerSearchResults;
+    | ServerSearchResults
+    | ServerSuggestSearchResults
+    | ServerSimilarSongs
+    | ServerSameArtist
+    | ServerSameAlbum
+    | ServerRandomSongs;
 
 export interface ServerFavorite {
     data: { favorite: boolean; id: string };
@@ -156,9 +201,67 @@ export interface ServerQueue {
 export interface SearchResultData {
     query: string;
     songs: Song[];
+    wsClientId?: string;
 }
 
 export interface ServerSearchResults {
     data: SearchResultData;
     event: 'search-results';
+}
+
+/** Autocomplete search results */
+export interface SuggestSearchResultData {
+    query: string;
+    songs: Song[];
+}
+
+export interface ServerSuggestSearchResults {
+    data: SuggestSearchResultData;
+    event: 'suggest-search-results';
+}
+
+/** Similar songs (track radio) results */
+export interface SimilarSongsData {
+    seedSong: Song;
+    songs: Song[];
+    truncated?: boolean;
+}
+
+export interface ServerSimilarSongs {
+    data: SimilarSongsData;
+    event: 'similar-songs';
+}
+
+/** Same artist results */
+export interface SameArtistData {
+    artistName: string;
+    songs: Song[];
+    truncated?: boolean;
+}
+
+export interface ServerSameArtist {
+    data: SameArtistData;
+    event: 'same-artist';
+}
+
+/** Same album results */
+export interface SameAlbumData {
+    albumName: string;
+    songs: Song[];
+    truncated?: boolean;
+}
+
+export interface ServerSameAlbum {
+    data: SameAlbumData;
+    event: 'same-album';
+}
+
+/** Random songs results */
+export interface RandomSongsData {
+    songs: Song[];
+}
+
+export interface ServerRandomSongs {
+    data: RandomSongsData;
+    event: 'random-songs';
 }

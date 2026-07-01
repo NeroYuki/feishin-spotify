@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from 'react';
+import formatDuration from 'format-duration';
 
 import { useQueue, useRequestQueue, useSend } from '/@/remote/store';
 import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
@@ -89,6 +90,11 @@ export const QueueView = () => {
                                 {song.artistName}
                             </Text>
                         </Stack>
+                        {song.duration > 0 && (
+                            <Text isMuted size="xs" style={{ flexShrink: 0 }}>
+                                {formatDuration(song.duration)}
+                            </Text>
+                        )}
                         <ActionIcon
                             icon="delete"
                             iconProps={{ size: 14 }}

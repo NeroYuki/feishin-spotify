@@ -12,7 +12,7 @@ import manifest from './manifest.json';
 import { isLinux } from '/@/main/env';
 import { getMainWindow } from '/@/main/index';
 import { QueueSong } from '/@/shared/types/domain-types';
-import { ClientEvent, QueueData, SearchResultData, ServerEvent } from '/@/shared/types/remote-types';
+import { ClientEvent, QueueData, SearchResultData, ServerEvent, SuggestSearchResultData } from '/@/shared/types/remote-types';
 import { PlayerRepeat, PlayerStatus, SongState } from '/@/shared/types/types';
 
 let mprisPlayer: any | undefined;
@@ -41,6 +41,7 @@ interface RemoteConfig {
 }
 
 declare class StatefulWebSocket extends WebSocket {
+    _clientId: string;
     alive: boolean;
     auth: boolean;
 }
@@ -51,6 +52,10 @@ interface RemoteSongState extends SongState {
 
 let server: Server | undefined;
 let wsServer: undefined | WsServer<typeof StatefulWebSocket>;
+
+/** Map of client IDs to WebSocket connections for targeted messaging */
+const clientMap = new Map<string, StatefulWebSocket>();
+let clientIdCounter = 0;
 
 const settings: RemoteConfig = {
     enabled: false,
@@ -342,6 +347,8 @@ const enableServer = (config: RemoteConfig): Promise<void> => {
             wsServer!.on('connection', (ws: StatefulWebSocket) => {
                 let authFail: number | undefined;
                 ws.alive = true;
+                ws._clientId = `rc_${++clientIdCounter}_${Date.now()}`;
+                clientMap.set(ws._clientId, ws);
 
                 if (!settings.username && !settings.password) {
                     ws.auth = true;
@@ -354,6 +361,12 @@ const enableServer = (config: RemoteConfig): Promise<void> => {
                 }
 
                 ws.on('error', console.error);
+
+                ws.on('close', () => {
+                    if (ws._clientId) {
+                        clientMap.delete(ws._clientId);
+                    }
+                });
 
                 ws.on('message', (data) => {
                     try {
@@ -530,16 +543,54 @@ const enableServer = (config: RemoteConfig): Promise<void> => {
                                 break;
                             }
                             case 'search': {
-                                const { query } = json;
-                                // Store the requesting client so we can reply directly
+                                const { query, spotifySearch } = json;
                                 getMainWindow()?.webContents.send('request-search', {
                                     query,
-                                    requestId: ws._socket?.remoteAddress, // will be replaced with proper ID
+                                    spotifySearch,
+                                    wsClientId: ws._clientId,
                                 });
-                                // Use a unique ID stored on the ws to route response
-                                getMainWindow()?.webContents.send('request-search', {
+                                break;
+                            }
+                            case 'suggest-search': {
+                                const { query } = json;
+                                getMainWindow()?.webContents.send('request-suggest-search', {
                                     query,
-                                    wsClientId: getMainWindow()?.id,
+                                    wsClientId: ws._clientId,
+                                });
+                                break;
+                            }
+                            case 'similar-songs': {
+                                const { songId, song } = json;
+                                getMainWindow()?.webContents.send('request-similar-songs', {
+                                    songId,
+                                    song,
+                                    wsClientId: ws._clientId,
+                                });
+                                break;
+                            }
+                            case 'same-artist': {
+                                const { artistName, artistId } = json;
+                                getMainWindow()?.webContents.send('request-same-artist', {
+                                    artistName,
+                                    artistId,
+                                    wsClientId: ws._clientId,
+                                });
+                                break;
+                            }
+                            case 'same-album': {
+                                const { albumName, albumId } = json;
+                                getMainWindow()?.webContents.send('request-same-album', {
+                                    albumName,
+                                    albumId,
+                                    wsClientId: ws._clientId,
+                                });
+                                break;
+                            }
+                            case 'random-songs': {
+                                const { size } = json;
+                                getMainWindow()?.webContents.send('request-random-songs', {
+                                    size: size || 20,
+                                    wsClientId: ws._clientId,
                                 });
                                 break;
                             }
@@ -733,6 +784,44 @@ ipcMain.on('update-queue', (_event, data: QueueData) => {
     broadcast({ data, event: 'queue' });
 });
 
+ipcMain.on('suggest-search-results', (_event, data: SuggestSearchResultData & { wsClientId?: string }) => {
+    replyToClient(data.wsClientId, { songs: data.songs, query: data.query }, 'suggest-search-results');
+});
+
 ipcMain.on('search-results', (_event, data: SearchResultData) => {
-    broadcast({ data, event: 'search-results' });
+    // Route search results only to the requesting client
+    if (data.wsClientId) {
+        const client = clientMap.get(data.wsClientId);
+        if (client) {
+            send({ client, data, event: 'search-results' });
+        }
+    }
+});
+
+/**
+ * Generic helper: forward a renderer reply to the requesting remote client.
+ */
+function replyToClient(wsClientId: string | undefined, data: any, event: ServerEvent['event']) {
+    if (wsClientId) {
+        const client = clientMap.get(wsClientId);
+        if (client) {
+            send({ client, data, event } as SendData);
+        }
+    }
+}
+
+ipcMain.on('similar-songs-results', (_event, data: { seedSong: any; songs: any[]; truncated?: boolean; wsClientId?: string }) => {
+    replyToClient(data.wsClientId, { seedSong: data.seedSong, songs: data.songs, truncated: data.truncated }, 'similar-songs');
+});
+
+ipcMain.on('same-artist-results', (_event, data: { artistName: string; songs: any[]; truncated?: boolean; wsClientId?: string }) => {
+    replyToClient(data.wsClientId, { artistName: data.artistName, songs: data.songs, truncated: data.truncated }, 'same-artist');
+});
+
+ipcMain.on('same-album-results', (_event, data: { albumName: string; songs: any[]; truncated?: boolean; wsClientId?: string }) => {
+    replyToClient(data.wsClientId, { albumName: data.albumName, songs: data.songs, truncated: data.truncated }, 'same-album');
+});
+
+ipcMain.on('random-songs-results', (_event, data: { songs: any[]; wsClientId?: string }) => {
+    replyToClient(data.wsClientId, { songs: data.songs }, 'random-songs');
 });

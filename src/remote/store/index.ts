@@ -14,22 +14,49 @@ export interface SettingsSlice extends SettingsState {
         reconnect: () => void;
         requestQueue: () => void;
         search: (query: string) => void;
+        spotifySearchOnce: (query: string) => void;
         send: (data: ClientEvent) => void;
         toggleIsDark: () => void;
         toggleShowImage: () => void;
+        requestRandomSongs: () => void;
+        suggestSearch: (query: string) => void;
+        requestSimilarSongs: (song: Song) => void;
+        requestSameArtist: (artistName: string) => void;
+        requestSameAlbum: (albumName: string) => void;
+        setContextMenuSong: (song: Song | null) => void;
+        setModalView: (view: 'same-artist' | 'same-album' | null) => void;
+        setActiveTab: (tab: string) => void;
     };
 }
 
 interface SettingsState {
+    activeTab: string;
     connected: boolean;
     info: Omit<SongUpdateSocket, 'currentTime'>;
     isDark: boolean;
     showImage: boolean;
     socket?: StatefulWebSocket;
     queue: QueueData;
+    searchGeneration: number;
     searchQuery: string;
     searchResults: Song[];
     searchLoading: boolean;
+    randomSongs: Song[];
+    randomSongsLoading: boolean;
+    suggestSearchResults: Song[];
+    similarSongs: Song[];
+    similarSongsSeed: Song | null;
+    similarSongsLoading: boolean;
+    sameArtistSongs: Song[];
+    sameArtistName: string;
+    sameArtistLoading: boolean;
+    sameArtistTruncated: boolean;
+    sameAlbumSongs: Song[];
+    sameAlbumName: string;
+    sameAlbumLoading: boolean;
+    sameAlbumTruncated: boolean;
+    contextMenuSong: Song | null;
+    modalView: 'same-artist' | 'same-album' | null;
 }
 
 interface StatefulWebSocket extends WebSocket {
@@ -37,14 +64,32 @@ interface StatefulWebSocket extends WebSocket {
 }
 
 const initialState: SettingsState = {
+    activeTab: 'now-playing',
     connected: false,
+    contextMenuSong: null,
     info: {},
     isDark: window.matchMedia('(prefers-color-scheme: dark)').matches,
+    modalView: null,
     queue: { index: -1, items: [] },
+    randomSongs: [],
+    randomSongsLoading: false,
+    sameAlbumLoading: false,
+    sameAlbumName: '',
+    sameAlbumSongs: [],
+    sameAlbumTruncated: false,
+    sameArtistLoading: false,
+    sameArtistName: '',
+    sameArtistSongs: [],
+    sameArtistTruncated: false,
+    searchGeneration: 0,
     searchLoading: false,
     searchQuery: '',
     searchResults: [],
     showImage: true,
+    suggestSearchResults: [],
+    similarSongs: [],
+    similarSongsLoading: false,
+    similarSongsSeed: null,
 };
 
 export const useRemoteStore = createWithEqualityFn<SettingsSlice>()(
@@ -274,8 +319,49 @@ export const useRemoteStore = createWithEqualityFn<SettingsSlice>()(
                                     }
                                     case 'search-results': {
                                         set((state) => {
-                                            state.searchResults = data.songs;
+                                            if (state.searchQuery) {
+                                                state.searchResults = data.songs;
+                                            }
                                             state.searchLoading = false;
+                                        });
+                                        break;
+                                    }
+                                    case 'similar-songs': {
+                                        set((state) => {
+                                            state.similarSongs = data.songs;
+                                            state.similarSongsSeed = data.seedSong;
+                                            state.similarSongsLoading = false;
+                                        });
+                                        break;
+                                    }
+                                    case 'same-artist': {
+                                        set((state) => {
+                                            state.sameArtistSongs = data.songs;
+                                            state.sameArtistName = data.artistName;
+                                            state.sameArtistLoading = false;
+                                            state.sameArtistTruncated = data.truncated || false;
+                                        });
+                                        break;
+                                    }
+                                    case 'same-album': {
+                                        set((state) => {
+                                            state.sameAlbumSongs = data.songs;
+                                            state.sameAlbumName = data.albumName;
+                                            state.sameAlbumLoading = false;
+                                            state.sameAlbumTruncated = data.truncated || false;
+                                        });
+                                        break;
+                                    }
+                                    case 'random-songs': {
+                                        set((state) => {
+                                            state.randomSongs = data.songs;
+                                            state.randomSongsLoading = false;
+                                        });
+                                        break;
+                                    }
+                                    case 'suggest-search-results': {
+                                        set((state) => {
+                                            state.suggestSearchResults = data.songs;
                                         });
                                         break;
                                     }
@@ -390,14 +476,94 @@ export const useRemoteStore = createWithEqualityFn<SettingsSlice>()(
                     },
                     search: (query: string) => {
                         const socket = get().socket;
+                        if (!query) {
+                            // Clear immediately – no WS message, no loading state
+                            set((state) => {
+                                state.searchQuery = '';
+                                state.searchResults = [];
+                                state.searchLoading = false;
+                            });
+                            return;
+                        }
                         set((state) => {
                             state.searchQuery = query;
                             state.searchLoading = true;
                             state.searchResults = [];
+                            state.searchGeneration++;
                         });
                         if (socket?.readyState === WebSocket.OPEN) {
                             socket.send(JSON.stringify({ event: 'search', query }));
                         }
+                    },
+                    suggestSearch: (query: string) => {
+                        const socket = get().socket;
+                        if (socket?.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({ event: 'suggest-search', query }));
+                        }
+                    },
+                    spotifySearchOnce: (query: string) => {
+                        const socket = get().socket;
+                        if (socket?.readyState === WebSocket.OPEN) {
+                            // Don't change loading state — it's a side search
+                            socket.send(JSON.stringify({ event: 'search', query, spotifySearch: true }));
+                        }
+                    },
+                    requestRandomSongs: () => {
+                        const socket = get().socket;
+                        set((state) => {
+                            state.randomSongsLoading = true;
+                        });
+                        if (socket?.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({ event: 'random-songs', size: 20 }));
+                        }
+                    },
+                    requestSimilarSongs: (song: Song) => {
+                        const socket = get().socket;
+                        set((state) => {
+                            state.similarSongsLoading = true;
+                            state.similarSongs = [];
+                            state.similarSongsSeed = song;
+                        });
+                        if (socket?.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({ event: 'similar-songs', songId: song.id, song }));
+                        }
+                    },
+                    requestSameArtist: (artistName: string) => {
+                        const socket = get().socket;
+                        set((state) => {
+                            state.sameArtistLoading = true;
+                            state.sameArtistSongs = [];
+                            state.sameArtistName = artistName;
+                        });
+                        if (socket?.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({ event: 'same-artist', artistName }));
+                        }
+                    },
+                    requestSameAlbum: (albumName: string) => {
+                        const socket = get().socket;
+                        set((state) => {
+                            state.sameAlbumLoading = true;
+                            state.sameAlbumSongs = [];
+                            state.sameAlbumName = albumName;
+                        });
+                        if (socket?.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({ event: 'same-album', albumName }));
+                        }
+                    },
+                    setContextMenuSong: (song: Song | null) => {
+                        set((state) => {
+                            state.contextMenuSong = song;
+                        });
+                    },
+                    setModalView: (view: 'same-artist' | 'same-album' | null) => {
+                        set((state) => {
+                            state.modalView = view;
+                        });
+                    },
+                    setActiveTab: (tab: string) => {
+                        set((state) => {
+                            state.activeTab = tab;
+                        });
                     },
                 },
                 ...initialState,
@@ -433,6 +599,57 @@ export const useSearchResults = () => useRemoteStore((state) => state.searchResu
 export const useSearchLoading = () => useRemoteStore((state) => state.searchLoading);
 
 export const useRequestQueue = () => useRemoteStore((state) => state.actions.requestQueue);
+export const useSpotifySearchOnce = () => useRemoteStore((state) => state.actions.spotifySearchOnce);
+
+export const useRandomSongs = () => useRemoteStore((state) => state.randomSongs);
+
+export const useRandomSongsLoading = () => useRemoteStore((state) => state.randomSongsLoading);
+
+export const useRequestRandomSongs = () => useRemoteStore((state) => state.actions.requestRandomSongs);
+
+export const useSuggestSearchResults = () => useRemoteStore((state) => state.suggestSearchResults);
+
+export const useSuggestSearch = () => useRemoteStore((state) => state.actions.suggestSearch);
+
+export const useSimilarSongs = () => useRemoteStore((state) => state.similarSongs);
+
+export const useSimilarSongsSeed = () => useRemoteStore((state) => state.similarSongsSeed);
+
+export const useSimilarSongsLoading = () => useRemoteStore((state) => state.similarSongsLoading);
+
+export const useRequestSimilarSongs = () => useRemoteStore((state) => state.actions.requestSimilarSongs);
+
+export const useSameArtistSongs = () => useRemoteStore((state) => state.sameArtistSongs);
+
+export const useSameArtistName = () => useRemoteStore((state) => state.sameArtistName);
+
+export const useSameArtistLoading = () => useRemoteStore((state) => state.sameArtistLoading);
+
+export const useSameArtistTruncated = () => useRemoteStore((state) => state.sameArtistTruncated);
+
+export const useRequestSameArtist = () => useRemoteStore((state) => state.actions.requestSameArtist);
+
+export const useSameAlbumSongs = () => useRemoteStore((state) => state.sameAlbumSongs);
+
+export const useSameAlbumName = () => useRemoteStore((state) => state.sameAlbumName);
+
+export const useSameAlbumLoading = () => useRemoteStore((state) => state.sameAlbumLoading);
+
+export const useSameAlbumTruncated = () => useRemoteStore((state) => state.sameAlbumTruncated);
+
+export const useRequestSameAlbum = () => useRemoteStore((state) => state.actions.requestSameAlbum);
+
+export const useContextMenuSong = () => useRemoteStore((state) => state.contextMenuSong);
+
+export const useSetContextMenuSong = () => useRemoteStore((state) => state.actions.setContextMenuSong);
+
+export const useModalView = () => useRemoteStore((state) => state.modalView);
+
+export const useSetModalView = () => useRemoteStore((state) => state.actions.setModalView);
+
+export const useActiveTab = () => useRemoteStore((state) => state.activeTab);
+
+export const useSetActiveTab = () => useRemoteStore((state) => state.actions.setActiveTab);
 
 export const useSearch = () => useRemoteStore((state) => state.actions.search);
 
