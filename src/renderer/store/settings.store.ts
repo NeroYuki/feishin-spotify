@@ -475,6 +475,7 @@ export const GeneralSettingsSchema = z.object({
         ),
     albumBackground: z.boolean(),
     albumBackgroundBlur: z.number(),
+    albumGroupImageSize: z.number(),
     artistBackground: z.boolean(),
     artistBackgroundBlur: z.number(),
     artistItems: z.array(SortableItemSchema(ArtistItemSchema)),
@@ -681,6 +682,7 @@ const WindowSettingsSchema = z.object({
     startMinimized: z.boolean(),
     tray: z.boolean(),
     windowBarStyle: z.nativeEnum(Platform),
+    windowBarTrackinfo: z.boolean(),
 });
 
 const QueryValueInputTypeSchema = z.enum([
@@ -1169,6 +1171,7 @@ const initialState: SettingsState = {
         accent: 'rgb(53, 116, 252)',
         albumBackground: false,
         albumBackgroundBlur: 3,
+        albumGroupImageSize: 0,
         artistBackground: true,
         artistBackgroundBlur: 3,
         artistItems,
@@ -2020,6 +2023,7 @@ const initialState: SettingsState = {
         startMinimized: false,
         tray: true,
         windowBarStyle: platformDefaultWindowBarStyle,
+        windowBarTrackinfo: true,
     },
 };
 
@@ -2566,6 +2570,9 @@ export const useWindowSettings = () => useSettingsStore((state) => state.window,
 export const useWindowBarStyle = () =>
     useSettingsStore((state) => state.window.windowBarStyle, shallow);
 
+export const useWindowBarTrackinfo = () =>
+    useSettingsStore((state) => state.window.windowBarTrackinfo, shallow);
+
 export const useHotkeySettings = () => useSettingsStore((state) => state.hotkeys, shallow);
 
 export const useHotkeyBindings = () => useSettingsStore((state) => state.hotkeys.bindings, shallow);
@@ -2645,6 +2652,9 @@ export const useButtonSize = () => useSettingsStore((state) => state.general.but
 export const useSkipButtons = () => useSettingsStore((state) => state.general.skipButtons, shallow);
 
 export const useImageRes = () => useSettingsStore((state) => state.general.imageRes, shallow);
+
+export const useAlbumGroupImageSize = () =>
+    useSettingsStore((state) => state.general.albumGroupImageSize);
 
 export const useVolumeWidth = () => useSettingsStore((state) => state.general.volumeWidth, shallow);
 

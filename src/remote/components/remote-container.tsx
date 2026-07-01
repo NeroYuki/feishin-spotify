@@ -150,8 +150,11 @@ export const RemoteContainer = () => {
                 <ActionIcon
                     disabled={!id}
                     onClick={() => {
-                        if (status === PlayerStatus.PLAYING) send({ event: 'pause' });
-                        else if (status === PlayerStatus.PAUSED) send({ event: 'play' });
+                        if (status === PlayerStatus.PLAYING) {
+                            send({ event: 'pause' });
+                        } else {
+                            send({ event: 'play' });
+                        }
                     }}
                     tooltip={{ label: id && status === PlayerStatus.PLAYING ? 'Pause' : 'Play' }}
                     variant="filled"

@@ -1091,8 +1091,14 @@ export const SubsonicController: InternalControllerEndpoint = {
         }
 
         switch (query.sortBy) {
+            case GenreListSort.ALBUM_COUNT:
+                results = orderBy(results, [(v) => v.albumCount], [sortOrder]);
+                break;
             case GenreListSort.NAME:
                 results = orderBy(results, [(v) => v.value.toLowerCase()], [sortOrder]);
+                break;
+            case GenreListSort.SONG_COUNT:
+                results = orderBy(results, [(v) => v.songCount], [sortOrder]);
                 break;
             default:
                 break;
@@ -1224,6 +1230,11 @@ export const SubsonicController: InternalControllerEndpoint = {
 
         return results.length;
     },
+    getPlaylistSongIds: async (args) =>
+        SubsonicController.getPlaylistSongList(args).then((result) => ({
+            ...result,
+            items: result.items.map((song) => song.id),
+        })),
     getPlaylistSongList: async ({ apiClientProps, query }) => {
         const res = await ssApiClient(apiClientProps).getPlaylist({
             query: {
