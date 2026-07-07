@@ -13,6 +13,7 @@ import {
 } from '/@/renderer/components/item-list/item-table-list/item-table-list-column';
 import { useIsActiveRow } from '/@/renderer/components/item-list/item-table-list/item-table-list-context';
 import { ExplicitIndicator } from '/@/shared/components/explicit-indicator/explicit-indicator';
+import { Icon } from '/@/shared/components/icon/icon';
 import { Text } from '/@/shared/components/text/text';
 import { LibraryItem, QueueSong, ServerType } from '/@/shared/types/domain-types';
 import spotifyIcon from '../../../../../../assets/icons/spotify.svg';
@@ -45,6 +46,8 @@ function DefaultTitleColumn(props: ItemTableListInnerColumn) {
     if (typeof row === 'string') {
         const item = rowItem as any;
 
+        const isExternal = !!(item?.id && String(item.id).startsWith('ext-'));
+
         const titleLinkProps = path
             ? {
                   component: Link,
@@ -65,6 +68,13 @@ function DefaultTitleColumn(props: ItemTableListInnerColumn) {
                     isNoSelect
                     {...titleLinkProps}
                 >
+                    {isExternal && (
+                        <Icon
+                            color="info"
+                            icon={String(item.id).startsWith('ext-spotify') ? 'brandSpotify' : 'globe'}
+                            size="xs"
+                        />
+                    )}
                     <ExplicitIndicator explicitStatus={item?.explicitStatus} />
                     {row}
                 </Text>
@@ -116,7 +126,7 @@ function QueueSongTitleColumn(props: ItemTableListInnerColumn) {
                     {...titleLinkProps}
                 >
                     <ExplicitIndicator explicitStatus={song?.explicitStatus} />
-                    {song?._serverType === ServerType.SPOTIFY && (
+                    {(song?._serverType === ServerType.SPOTIFY || song?.id?.startsWith?.('ext-spotify')) && (
                         <img
                             alt="Spotify"
                             src={spotifyIcon}
@@ -127,6 +137,13 @@ function QueueSongTitleColumn(props: ItemTableListInnerColumn) {
                                 verticalAlign: 'middle',
                                 width: '11px',
                             }}
+                        />
+                    )}
+                    {song?.id?.startsWith?.('ext-') && !song?.id?.startsWith?.('ext-spotify') && song?._serverType !== ServerType.SPOTIFY && (
+                        <Icon
+                            color="info"
+                            icon="globe"
+                            size="xs"
                         />
                     )}
                     {row}

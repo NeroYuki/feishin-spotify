@@ -518,6 +518,36 @@ export const SubsonicController: InternalControllerEndpoint = {
     getAlbumArtistList: async (args) => {
         const { apiClientProps, query } = args;
 
+        if (query.spotifySearch || query.externalSearch) {
+            const res = await ssApiClient(apiClientProps).search3({
+                query: {
+                    albumCount: 0,
+                    albumOffset: 0,
+                    artistCount: query.limit,
+                    artistOffset: query.startIndex,
+                    musicFolderId: getLibraryId(query.musicFolderId),
+                    query: query.searchTerm || '',
+                    songCount: 0,
+                    songOffset: 0,
+                    spotifySearch: query.spotifySearch || query.externalSearch,
+                },
+            });
+
+            if (res.status !== 200) {
+                throw new Error('Failed to get album artist list');
+            }
+
+            const results = (res.body.searchResult3?.artist || []).map((artist) =>
+                ssNormalize.albumArtist(artist, apiClientProps.server),
+            );
+
+            return {
+                items: results,
+                startIndex: query.startIndex,
+                totalRecordCount: null,
+            };
+        }
+
         const res = await ssApiClient(apiClientProps).getArtists({
             query: {
                 musicFolderId: getLibraryId(query.musicFolderId),
@@ -554,11 +584,47 @@ export const SubsonicController: InternalControllerEndpoint = {
             startIndex: query.startIndex,
         });
     },
-    getAlbumArtistListCount: (args) =>
-        SubsonicController.getAlbumArtistList({
+    getAlbumArtistListCount: async (args) => {
+        const { apiClientProps, query } = args;
+
+        if (query.spotifySearch || query.externalSearch) {
+            let fetchNextPage = true;
+            let startIndex = 0;
+            let totalRecordCount = 0;
+
+            while (fetchNextPage) {
+                const res = await ssApiClient(apiClientProps).search3({
+                    query: {
+                        albumCount: 0,
+                        albumOffset: 0,
+                        artistCount: MAX_SUBSONIC_ITEMS,
+                        artistOffset: startIndex,
+                        musicFolderId: getLibraryId(query.musicFolderId),
+                        query: query.searchTerm || '',
+                        songCount: 0,
+                        songOffset: 0,
+                        spotifySearch: query.spotifySearch || query.externalSearch,
+                    },
+                });
+
+                if (res.status !== 200) {
+                    throw new Error('Failed to get album artist list count');
+                }
+
+                const count = (res.body.searchResult3?.artist || []).length;
+                totalRecordCount += count;
+                startIndex += count;
+                fetchNextPage = count === MAX_SUBSONIC_ITEMS;
+            }
+
+            return totalRecordCount;
+        }
+
+        return SubsonicController.getAlbumArtistList({
             ...args,
             query: { ...args.query, startIndex: 0 },
-        }).then((res) => res!.totalRecordCount!),
+        }).then((res) => res!.totalRecordCount!);
+    },
     getAlbumDetail: async (args) => {
         const { apiClientProps, query } = args;
 
@@ -588,7 +654,7 @@ export const SubsonicController: InternalControllerEndpoint = {
                     query: query.searchTerm || '',
                     songCount: 0,
                     songOffset: 0,
-                    spotifySearch: query.spotifySearch,
+                    spotifySearch: query.spotifySearch || query.externalSearch,
                 },
             });
 
@@ -745,6 +811,7 @@ export const SubsonicController: InternalControllerEndpoint = {
                         query: query.searchTerm || '',
                         songCount: 0,
                         songOffset: 0,
+                        spotifySearch: query.spotifySearch || query.externalSearch,
                     },
                 });
 
@@ -1455,7 +1522,7 @@ export const SubsonicController: InternalControllerEndpoint = {
                     query: query.searchTerm || '',
                     songCount: query.limit,
                     songOffset: query.startIndex,
-                    spotifySearch: query.spotifySearch,
+                    spotifySearch: query.spotifySearch || query.externalSearch,
                 },
             });
 
@@ -1610,7 +1677,7 @@ export const SubsonicController: InternalControllerEndpoint = {
                 query: query.searchTerm || '',
                 songCount: query.limit,
                 songOffset: query.startIndex,
-                spotifySearch: query.spotifySearch,
+                spotifySearch: query.spotifySearch || query.externalSearch,
             },
         });
 
@@ -1652,6 +1719,7 @@ export const SubsonicController: InternalControllerEndpoint = {
                         query: query.searchTerm || '',
                         songCount: MAX_SUBSONIC_ITEMS,
                         songOffset: startIndex,
+                        spotifySearch: query.spotifySearch || query.externalSearch,
                     },
                 });
 
@@ -1826,6 +1894,7 @@ export const SubsonicController: InternalControllerEndpoint = {
                     query: query.searchTerm || '',
                     songCount: 1,
                     songOffset: sectionIndex,
+                    spotifySearch: query.spotifySearch || query.externalSearch,
                 },
             });
 
@@ -1855,6 +1924,7 @@ export const SubsonicController: InternalControllerEndpoint = {
                     query: query.searchTerm || '',
                     songCount: MAX_SUBSONIC_ITEMS,
                     songOffset: startIndex,
+                    spotifySearch: query.spotifySearch || query.externalSearch,
                 },
             });
 

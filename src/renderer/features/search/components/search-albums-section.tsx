@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { nanoid } from 'nanoid/non-secure';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createSearchParams, generatePath, useNavigate } from 'react-router';
 
@@ -50,13 +50,21 @@ export function SearchAlbumsSection({
             }),
         );
 
-    const albums = data?.pages.flatMap((p) => p.albums) ?? [];
+    const albums = useMemo(() => {
+        const seen = new Set<string>();
+        return (data?.pages ?? []).flatMap((p) => p.albums).filter((album) => {
+            if (seen.has(album.id)) return false;
+            seen.add(album.id);
+            return true;
+        });
+    }, [data?.pages]);
     const showSection = isHome;
     const numberOfResults = hasNextPage ? `${albums.length}+` : albums.length;
 
     const handleGoToPage = useCallback(() => {
         const params: Record<string, string> = {
             [FILTER_KEYS.SHARED.SEARCH_TERM]: debouncedQuery || query,
+            [FILTER_KEYS.SHARED.EXTERNAL_SEARCH]: 'true',
         };
         if (spotifySearch) {
             params[FILTER_KEYS.SHARED.SPOTIFY_SEARCH] = 'true';

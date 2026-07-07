@@ -7,22 +7,27 @@ import { PlayerStatus } from '/@/shared/types/types';
 const requestFavorite = (
     cb: (data: { favorite: boolean; id: string; serverId: string }) => void,
 ) => {
+    ipcRenderer.removeAllListeners('request-favorite');
     ipcRenderer.on('request-favorite', (_, data) => cb(data));
 };
 
 const requestPosition = (cb: (data: { position: number }) => void) => {
+    ipcRenderer.removeAllListeners('request-position');
     ipcRenderer.on('request-position', (_, data) => cb(data));
 };
 
 const requestRating = (cb: (data: { id: string; rating: number; serverId: string }) => void) => {
+    ipcRenderer.removeAllListeners('request-rating');
     ipcRenderer.on('request-rating', (_, data) => cb(data));
 };
 
 const requestSeek = (cb: (data: { offset: number }) => void) => {
+    ipcRenderer.removeAllListeners('request-seek');
     ipcRenderer.on('request-seek', (_, data) => cb(data));
 };
 
 const requestVolume = (cb: (data: { volume: number }) => void) => {
+    ipcRenderer.removeAllListeners('request-volume');
     ipcRenderer.on('request-volume', (_, data) => cb(data));
 };
 
@@ -114,42 +119,51 @@ const randomSongsResults = (data: { songs: Song[]; wsClientId?: string }) => {
 };
 
 const requestQueue = (cb: () => void) => {
+    ipcRenderer.removeAllListeners('request-queue');
     ipcRenderer.on('request-queue', () => cb());
 };
 
 const requestSearch = (cb: (data: { query: string; spotifySearch?: boolean; wsClientId?: string }) => void) => {
+    ipcRenderer.removeAllListeners('request-search');
     ipcRenderer.on('request-search', (_, data) => cb(data));
 };
 
 const requestSuggestSearch = (cb: (data: { query: string; wsClientId?: string }) => void) => {
+    ipcRenderer.removeAllListeners('request-suggest-search');
     ipcRenderer.on('request-suggest-search', (_, data) => cb(data));
 };
 
 const requestSimilarSongs = (cb: (data: { songId: string; song: Song; wsClientId?: string }) => void) => {
+    ipcRenderer.removeAllListeners('request-similar-songs');
     ipcRenderer.on('request-similar-songs', (_, data) => cb(data));
 };
 
 const requestSameArtist = (cb: (data: { artistName: string; artistId?: string; wsClientId?: string }) => void) => {
+    ipcRenderer.removeAllListeners('request-same-artist');
     ipcRenderer.on('request-same-artist', (_, data) => cb(data));
 };
 
 const requestSameAlbum = (cb: (data: { albumName: string; albumId?: string; wsClientId?: string }) => void) => {
+    ipcRenderer.removeAllListeners('request-same-album');
     ipcRenderer.on('request-same-album', (_, data) => cb(data));
 };
 
 const requestRandomSongs = (cb: (data: { size: number; wsClientId?: string }) => void) => {
+    ipcRenderer.removeAllListeners('request-random-songs');
     ipcRenderer.on('request-random-songs', (_, data) => cb(data));
 };
 
 const requestQueueAction = (
     cb: (data: { action: string; [key: string]: any }) => void,
 ) => {
+    ipcRenderer.removeAllListeners('request-queue-action');
     ipcRenderer.on('request-queue-action', (_, data) => cb(data));
 };
 
 const requestQueueAdd = (
     cb: (data: { items: Song[]; playType: 'now' | 'next' | 'last' }) => void,
 ) => {
+    ipcRenderer.removeAllListeners('request-queue-add');
     ipcRenderer.on('request-queue-add', (_, data) => cb(data));
 };
 

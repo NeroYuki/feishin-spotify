@@ -53,6 +53,7 @@ enum ArtistFilterKeys {
 }
 
 enum SharedFilterKeys {
+    EXTERNAL_SEARCH = 'externalSearch',
     MUSIC_FOLDER_ID = 'musicFolderId',
     SEARCH_TERM = 'searchTerm',
     SORT_BY = 'sortBy',

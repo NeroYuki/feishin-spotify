@@ -43,6 +43,7 @@ export function useGenrePreviewPlayer(
     volume: number = 1,
     onSongEnd?: () => void,
     maxDuration = 0, // seconds; 0 = play full preview
+    autoPlay = true,
 ) {
     const [state, setState] = useState<PreviewPlayerState>(INITIAL_STATE);
     const stateRef = useRef<PreviewPlayerState>(INITIAL_STATE);
@@ -51,6 +52,8 @@ export function useGenrePreviewPlayer(
     onSongEndRef.current = onSongEnd;
     const maxDurationRef = useRef(maxDuration);
     maxDurationRef.current = maxDuration;
+    const autoPlayRef = useRef(autoPlay);
+    autoPlayRef.current = autoPlay;
 
     const setAndSync = useCallback((updater: (prev: PreviewPlayerState) => PreviewPlayerState) => {
         setState((prev) => {
@@ -92,6 +95,8 @@ export function useGenrePreviewPlayer(
                 if (maxDurationRef.current > 0) {
                     maxDurationTimerRef.current = setTimeout(() => {
                         maxDurationTimerRef.current = null;
+                        // Only auto-advance if still playing (not paused by user)
+                        if (stateRef.current.status !== 'playing') return;
                         onSongEndRef.current?.();
                         // Skip to next preview song
                         const next = pickRandomIndex(artistList, index);
@@ -156,8 +161,9 @@ export function useGenrePreviewPlayer(
         };
     }, [artists, playIndex, setAndSync]);
 
-    // Auto-play when new artist list arrives (genre opened)
+    // Auto-play when new artist list arrives (genre opened) — unless suppressed
     useEffect(() => {
+        if (!autoPlayRef.current) return;
         if (!artists || artists.length === 0) {
             getAudio().pause();
             setAndSync(() => INITIAL_STATE);
@@ -173,6 +179,10 @@ export function useGenrePreviewPlayer(
     }, []);
 
     const pause = useCallback(() => {
+        if (maxDurationTimerRef.current !== null) {
+            clearTimeout(maxDurationTimerRef.current);
+            maxDurationTimerRef.current = null;
+        }
         getAudio().pause();
     }, []);
 

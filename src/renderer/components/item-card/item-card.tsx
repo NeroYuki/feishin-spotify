@@ -1083,6 +1083,13 @@ export const getDataRows = (type?: 'compact' | 'default' | 'poster'): DataRow[] 
                                                 albumId: data.id,
                                             })}
                                         >
+                                            {'id' in data && String(data.id).startsWith('ext-') && (
+                                                <Icon
+                                                    color="info"
+                                                    icon={String(data.id).startsWith('ext-spotify') ? 'brandSpotify' : 'globe'}
+                                                    size="xs"
+                                                />
+                                            )}
                                             <ExplicitIndicator explicitStatus={explicitStatus} />
                                             {data.name}
                                         </Link>
@@ -1098,6 +1105,13 @@ export const getDataRows = (type?: 'compact' | 'default' | 'poster'): DataRow[] 
                                                 },
                                             )}
                                         >
+                                            {'id' in data && String(data.id).startsWith('ext-') && (
+                                                <Icon
+                                                    color="info"
+                                                    icon={String(data.id).startsWith('ext-spotify') ? 'brandSpotify' : 'globe'}
+                                                    size="xs"
+                                                />
+                                            )}
                                             <ExplicitIndicator explicitStatus={explicitStatus} />
                                             {data.name}
                                         </Link>
@@ -1127,6 +1141,13 @@ export const getDataRows = (type?: 'compact' | 'default' | 'poster'): DataRow[] 
                                 default:
                                     return (
                                         <>
+                                            {'id' in data && String(data.id).startsWith('ext-') && (
+                                                <Icon
+                                                    color="info"
+                                                    icon={String(data.id).startsWith('ext-spotify') ? 'brandSpotify' : 'globe'}
+                                                    size="xs"
+                                                />
+                                            )}
                                             <ExplicitIndicator explicitStatus={explicitStatus} />
                                             {data.name}
                                         </>
@@ -1136,6 +1157,13 @@ export const getDataRows = (type?: 'compact' | 'default' | 'poster'): DataRow[] 
                     }
                     return (
                         <>
+                            {'id' in data && String(data.id).startsWith('ext-') && (
+                                <Icon
+                                    color="info"
+                                    icon={String(data.id).startsWith('ext-spotify') ? 'brandSpotify' : 'globe'}
+                                    size="xs"
+                                />
+                            )}
                             <ExplicitIndicator explicitStatus={explicitStatus} />
                             {data.name}
                         </>
@@ -1190,7 +1218,7 @@ export const getDataRows = (type?: 'compact' | 'default' | 'poster'): DataRow[] 
         },
         {
             format: (data) => {
-                if ('duration' in data && data.duration !== null) {
+                if ('duration' in data && data.duration !== null && data.duration > 0) {
                     return formatDurationString(data.duration);
                 }
                 return '';

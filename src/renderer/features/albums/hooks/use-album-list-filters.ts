@@ -78,6 +78,11 @@ export const useAlbumListFilters = (listKey?: ItemListKey) => {
         [searchParams],
     );
 
+    const externalSearch = useMemo(
+        () => parseBooleanParam(searchParams, FILTER_KEYS.SHARED.EXTERNAL_SEARCH),
+        [searchParams],
+    );
+
     const setGenreId = useCallback(
         (value: null | string[]) => {
             runInUrlTransition(() => {
@@ -226,6 +231,7 @@ export const useAlbumListFilters = (listKey?: ItemListKey) => {
                             [FILTER_KEYS.ALBUM.RECENTLY_PLAYED]: null,
                             [FILTER_KEYS.SHARED.SEARCH_TERM]: null,
                             [FILTER_KEYS.SHARED.SPOTIFY_SEARCH]: null,
+                            [FILTER_KEYS.SHARED.EXTERNAL_SEARCH]: null,
                         },
                         new Set([FILTER_KEYS.ALBUM._CUSTOM]),
                     ),
@@ -249,11 +255,13 @@ export const useAlbumListFilters = (listKey?: ItemListKey) => {
             [FILTER_KEYS.SHARED.SORT_BY]: sortBy ?? undefined,
             [FILTER_KEYS.SHARED.SORT_ORDER]: sortOrder ?? undefined,
             [FILTER_KEYS.SHARED.SPOTIFY_SEARCH]: spotifySearch ?? undefined,
+            [FILTER_KEYS.SHARED.EXTERNAL_SEARCH]: externalSearch ?? undefined,
         }),
         [
             custom,
             albumArtist,
             compilation,
+            externalSearch,
             favorite,
             genreId,
             hasRating,

@@ -53,6 +53,13 @@ export const DefaultTitleArtistColumn = (props: ItemTableListInnerColumn) => {
                     })}
                 >
                     <Text className={styles.title} isNoSelect size="md" {...titleLinkProps}>
+                        {item?.id?.startsWith?.('ext-') && (
+                            <Icon
+                                color="info"
+                                icon={String(item.id).startsWith('ext-spotify') ? 'brandSpotify' : 'globe'}
+                                size="xs"
+                            />
+                        )}
                         <ExplicitIndicator explicitStatus={item?.explicitStatus} />
                         {item.name as string}
                     </Text>

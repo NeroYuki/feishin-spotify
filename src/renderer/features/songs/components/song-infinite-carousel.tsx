@@ -25,6 +25,7 @@ import {
 import { ItemListKey, Play } from '/@/shared/types/types';
 
 interface SongCarouselProps {
+    actions?: React.ReactNode;
     containerQuery?: ReturnType<typeof useGridCarouselContainerQuery>;
     enableRefresh?: boolean;
     excludeIds?: string[];
@@ -38,6 +39,7 @@ interface SongCarouselProps {
 
 const BaseSongInfiniteCarousel = (props: SongCarouselProps & { rows: DataRow[] }) => {
     const {
+        actions,
         containerQuery,
         enableRefresh,
         excludeIds,
@@ -115,6 +117,7 @@ const BaseSongInfiniteCarousel = (props: SongCarouselProps & { rows: DataRow[] }
 
     return (
         <GridCarousel
+            actions={actions}
             cards={cards}
             containerQuery={containerQuery}
             enableRefresh={enableRefresh}

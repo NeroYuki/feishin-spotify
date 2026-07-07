@@ -27,6 +27,11 @@ export const useAlbumArtistListFilters = () => {
         [searchParams],
     );
 
+    const externalSearch = useMemo(
+        () => parseBooleanParam(searchParams, FILTER_KEYS.SHARED.EXTERNAL_SEARCH),
+        [searchParams],
+    );
+
     const clear = useCallback(() => {
         runInUrlTransition(() => {
             setSearchParams(
@@ -34,6 +39,7 @@ export const useAlbumArtistListFilters = () => {
                     setMultipleSearchParams(prev, {
                         [FILTER_KEYS.SHARED.SEARCH_TERM]: null,
                         [FILTER_KEYS.SHARED.SPOTIFY_SEARCH]: null,
+                        [FILTER_KEYS.SHARED.EXTERNAL_SEARCH]: null,
                     }),
                 { replace: true },
             );
@@ -41,6 +47,7 @@ export const useAlbumArtistListFilters = () => {
     }, [setSearchParams]);
 
     const query = {
+        [FILTER_KEYS.SHARED.EXTERNAL_SEARCH]: externalSearch ?? undefined,
         [FILTER_KEYS.SHARED.SEARCH_TERM]: searchTerm ?? undefined,
         [FILTER_KEYS.SHARED.SORT_BY]: sortBy ?? undefined,
         [FILTER_KEYS.SHARED.SORT_ORDER]: sortOrder ?? undefined,

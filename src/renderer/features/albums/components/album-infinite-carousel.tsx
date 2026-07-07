@@ -23,6 +23,7 @@ import {
 import { ItemListKey } from '/@/shared/types/types';
 
 interface AlbumCarouselProps {
+    actions?: React.ReactNode;
     containerQuery?: ReturnType<typeof useGridCarouselContainerQuery>;
     enableRefresh?: boolean;
     excludeIds?: string[];
@@ -36,6 +37,7 @@ interface AlbumCarouselProps {
 
 const BaseAlbumInfiniteCarousel = (props: AlbumCarouselProps & { rows: DataRow[] }) => {
     const {
+        actions,
         containerQuery,
         enableRefresh,
         excludeIds,
@@ -99,6 +101,7 @@ const BaseAlbumInfiniteCarousel = (props: AlbumCarouselProps & { rows: DataRow[]
 
     return (
         <GridCarousel
+            actions={actions}
             cards={cards}
             containerQuery={containerQuery}
             enableRefresh={enableRefresh}

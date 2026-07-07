@@ -37,6 +37,7 @@ export enum AppRoute {
     SPOTIFY_ARTIST_DETAIL = '/spotify/artists/:artistId',
     SPOTIFY_PLAYLIST_DETAIL = '/spotify/playlists/:playlistId',
     SPOTIFY_EVERYNOISE = '/spotify/everynoise',
+    SPOTIFY_GENRE_DETAIL = '/spotify/genre/:genreName',
     SPOTIFY_LIKED_TRACKS = '/spotify/liked',
     SPOTIFY_SEARCH = '/spotify/search',
 }

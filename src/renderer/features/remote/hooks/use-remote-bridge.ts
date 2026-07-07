@@ -337,7 +337,8 @@ export function useRemoteBridge() {
         remote.requestQueueAdd(handleQueueAdd);
 
         return () => {
-            // No cleanup needed for ipcRenderer.on since it's handled by the preload bindings
+            // Preload bindings use removeAllListeners before registering, so stale
+            // listeners from previous effect runs are cleaned up automatically.
         };
     }, [
         handleRequestQueue,

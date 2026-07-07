@@ -45,6 +45,7 @@ const AlbumSearch = () => {
     const [searchParams] = useSearchParams();
 
     const albumQuery: OverrideAlbumListQuery = {
+        externalSearch: searchParams.get(FILTER_KEYS.SHARED.EXTERNAL_SEARCH) === 'true',
         searchTerm: searchParams.get('query') || '',
         sortBy: AlbumListSort.NAME,
         sortOrder: SortOrder.ASC,
@@ -68,6 +69,7 @@ const SongSearch = () => {
     const [searchParams] = useSearchParams();
 
     const songQuery: OverrideSongListQuery = {
+        externalSearch: searchParams.get(FILTER_KEYS.SHARED.EXTERNAL_SEARCH) === 'true',
         searchTerm: searchParams.get('query') || '',
         sortBy: SongListSort.NAME,
         sortOrder: SortOrder.ASC,
@@ -91,6 +93,7 @@ const ArtistSearch = () => {
     const [searchParams] = useSearchParams();
 
     const albumArtistQuery: OverrideAlbumArtistListQuery = {
+        externalSearch: searchParams.get(FILTER_KEYS.SHARED.EXTERNAL_SEARCH) === 'true',
         searchTerm: searchParams.get('query') || '',
         sortBy: AlbumArtistListSort.NAME,
         sortOrder: SortOrder.ASC,

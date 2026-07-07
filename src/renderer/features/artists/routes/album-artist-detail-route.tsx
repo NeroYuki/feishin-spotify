@@ -1,4 +1,4 @@
-import { useSuspenseQueries } from '@tanstack/react-query';
+import { useQuery, useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query';
 import { Suspense, useRef } from 'react';
 import { useParams } from 'react-router';
 
@@ -37,21 +37,33 @@ const AlbumArtistDetailRouteContent = () => {
     };
 
     const routeId = (artistId || albumArtistId) as string;
+    const isExternal = routeId.startsWith('ext-');
 
-    const [detailQuery, albumsQuery] = useSuspenseQueries({
-        queries: [
-            artistsQueries.albumArtistDetail({ query: { id: routeId }, serverId: server?.id }),
-            albumQueries.list({
-                query: {
-                    artistIds: [routeId],
-                    limit: -1,
-                    sortBy: AlbumListSort.RELEASE_DATE,
-                    sortOrder: SortOrder.DESC,
-                    startIndex: 0,
-                },
-                serverId,
-            }),
-        ],
+    // For external artists, we use dependent queries: detail first, then search for albums
+    const detailQuery = useSuspenseQuery(
+        artistsQueries.albumArtistDetail({ query: { id: routeId }, serverId: server?.id }),
+    );
+
+    const albumsQuery = useSuspenseQuery({
+        ...albumQueries.list({
+            query: isExternal
+                ? {
+                      limit: -1,
+                      searchTerm: detailQuery.data?.name || routeId,
+                      sortBy: AlbumListSort.RELEASE_DATE,
+                      sortOrder: SortOrder.DESC,
+                      startIndex: 0,
+                      externalSearch: true,
+                  }
+                : {
+                      artistIds: [routeId],
+                      limit: -1,
+                      sortBy: AlbumListSort.RELEASE_DATE,
+                      sortOrder: SortOrder.DESC,
+                      startIndex: 0,
+                  },
+            serverId,
+        }),
     });
 
     const imageUrl = useItemImageUrl({

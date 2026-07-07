@@ -54,7 +54,7 @@ export const getOptimizedListCount = async <
     const cachedPage = client.getQueryData(pageQueryKey);
 
     if (cachedPage && typeof cachedPage === 'object' && 'totalRecordCount' in cachedPage) {
-        return (cachedPage as TResponse).totalRecordCount ?? 0;
+        return (cachedPage as TResponse).totalRecordCount;
     }
 
     const pageResult = await listQueryFn({
@@ -68,5 +68,5 @@ export const getOptimizedListCount = async <
         client.setQueryData(pageQueryKey, pageResult);
     }
 
-    return pageResult.totalRecordCount ?? 0;
+    return pageResult.totalRecordCount;
 };

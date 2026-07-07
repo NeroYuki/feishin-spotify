@@ -515,6 +515,7 @@ export interface AlbumListQuery extends AlbumListNavidromeQuery, BaseQuery<Album
     _custom?: Record<string, any>;
     artistIds?: string[];
     compilation?: boolean;
+    externalSearch?: boolean;
     favorite?: boolean;
     genreIds?: string[];
     limit?: number;
@@ -652,6 +653,7 @@ export interface SongListQuery extends BaseQuery<SongListSort> {
     albumArtistIds?: string[];
     albumIds?: string[];
     artistIds?: string[];
+    externalSearch?: boolean;
     favorite?: boolean;
     genreIds?: string[];
     hasRating?: boolean;
@@ -765,6 +767,7 @@ export type AlbumArtistListCountArgs = BaseEndpointArgs & {
 
 export interface AlbumArtistListQuery extends BaseQuery<AlbumArtistListSort> {
     _custom?: Record<string, any>;
+    externalSearch?: boolean;
     favorite?: boolean;
     limit?: number;
     musicFolderId?: string | string[];

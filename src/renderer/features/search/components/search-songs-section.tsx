@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { nanoid } from 'nanoid/non-secure';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createSearchParams, useNavigate } from 'react-router';
 
@@ -53,13 +53,21 @@ export function SearchSongsSection({
             }),
         );
 
-    const songs = data?.pages.flatMap((p) => p.songs) ?? [];
+    const songs = useMemo(() => {
+        const seen = new Set<string>();
+        return (data?.pages ?? []).flatMap((p) => p.songs).filter((song) => {
+            if (seen.has(song.id)) return false;
+            seen.add(song.id);
+            return true;
+        });
+    }, [data?.pages]);
     const showSection = isHome;
     const numberOfResults = hasNextPage ? `${songs.length}+` : songs.length;
 
     const handleGoToPage = useCallback(() => {
         const params: Record<string, string> = {
             [FILTER_KEYS.SHARED.SEARCH_TERM]: debouncedQuery || query,
+            [FILTER_KEYS.SHARED.EXTERNAL_SEARCH]: 'true',
         };
         if (spotifySearch) {
             params[FILTER_KEYS.SHARED.SPOTIFY_SEARCH] = 'true';

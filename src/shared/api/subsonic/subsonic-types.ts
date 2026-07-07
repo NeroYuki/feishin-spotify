@@ -275,7 +275,7 @@ const albumList = z.array(album.omit({ song: true }));
 
 const albumArtist = z.object({
     album: z.array(album).optional(),
-    albumCount: z.string(),
+    albumCount: z.union([z.string(), z.number()]),
     artistImageUrl: z.string().optional(),
     coverArt: z.string().optional(),
     id,
@@ -313,7 +313,7 @@ const artistInfo = z.object({
         musicBrainzId: z.string().optional(),
         similarArtist: z.array(
             z.object({
-                albumCount: z.string(),
+                albumCount: z.union([z.string(), z.number()]),
                 artistImageUrl: z.string().optional(),
                 coverArt: z.string().optional(),
                 id: z.string(),

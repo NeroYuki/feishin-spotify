@@ -1,4 +1,4 @@
-import { Suspense, useRef } from 'react';
+import { Suspense, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useGridCarouselContainerQuery } from '/@/renderer/components/grid-carousel/grid-carousel-v2';
@@ -22,6 +22,7 @@ import {
     useHomeItems,
     useWindowSettings,
 } from '/@/renderer/store';
+import { SegmentedControl } from '/@/shared/components/segmented-control/segmented-control';
 import { Spinner } from '/@/shared/components/spinner/spinner';
 import { Stack } from '/@/shared/components/stack/stack';
 import {
@@ -33,6 +34,16 @@ import {
 } from '/@/shared/types/domain-types';
 import { Platform } from '/@/shared/types/types';
 
+const VIEW_TOGGLE_SECTIONS = new Set([
+    HomeItem.MOST_PLAYED,
+    HomeItem.RANDOM,
+    HomeItem.RECENTLY_ADDED,
+    HomeItem.RECENTLY_PLAYED,
+    HomeItem.RECENTLY_RELEASED,
+]);
+
+type ItemView = 'album' | 'song';
+
 const HomeRoute = () => {
     const { t } = useTranslation();
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -42,55 +53,159 @@ const HomeRoute = () => {
     const homeFeatureStyle = useHomeFeatureStyle();
     const homeItems = useHomeItems();
     const containerQuery = useGridCarouselContainerQuery();
+    const [itemViews, setItemViews] = useState<Record<string, ItemView>>({});
 
     const isJellyfin = server?.type === ServerType.JELLYFIN;
 
-    const carousels = {
+    const carousels: Record<string, any> = {
         [HomeItem.MOST_PLAYED]: {
-            enableRefresh: true,
-            itemType: isJellyfin ? LibraryItem.SONG : LibraryItem.ALBUM,
-            sortBy: isJellyfin ? SongListSort.PLAY_COUNT : AlbumListSort.PLAY_COUNT,
-            sortOrder: SortOrder.DESC,
-            title: t('page.home.mostPlayed'),
+            album: {
+                enableRefresh: true,
+                sortBy: AlbumListSort.PLAY_COUNT,
+                sortOrder: SortOrder.DESC,
+                title: t('page.home.mostPlayed'),
+            },
+            song: {
+                enableRefresh: true,
+                sortBy: SongListSort.PLAY_COUNT,
+                sortOrder: SortOrder.DESC,
+                title: t('page.home.mostPlayed'),
+            },
         },
         [HomeItem.RANDOM]: {
-            enableRefresh: true,
-            itemType: LibraryItem.ALBUM,
-            sortBy: AlbumListSort.RANDOM,
-            sortOrder: SortOrder.ASC,
-            title: t('page.home.explore'),
+            album: {
+                enableRefresh: true,
+                sortBy: AlbumListSort.RANDOM,
+                sortOrder: SortOrder.ASC,
+                title: t('page.home.explore'),
+            },
+            song: {
+                enableRefresh: true,
+                sortBy: SongListSort.RANDOM,
+                sortOrder: SortOrder.ASC,
+                title: t('page.home.explore'),
+            },
         },
         [HomeItem.RECENTLY_ADDED]: {
-            enableRefresh: true,
-            itemType: LibraryItem.ALBUM,
-            sortBy: AlbumListSort.RECENTLY_ADDED,
-            sortOrder: SortOrder.DESC,
-            title: t('page.home.newlyAdded'),
+            album: {
+                enableRefresh: true,
+                sortBy: AlbumListSort.RECENTLY_ADDED,
+                sortOrder: SortOrder.DESC,
+                title: t('page.home.newlyAdded'),
+            },
+            song: {
+                enableRefresh: true,
+                sortBy: SongListSort.RECENTLY_ADDED,
+                sortOrder: SortOrder.DESC,
+                title: t('page.home.newlyAdded'),
+            },
         },
         [HomeItem.RECENTLY_PLAYED]: {
-            enableRefresh: true,
-            itemType: isJellyfin ? LibraryItem.SONG : LibraryItem.ALBUM,
-            sortBy: isJellyfin ? SongListSort.RECENTLY_PLAYED : AlbumListSort.RECENTLY_PLAYED,
-            sortOrder: SortOrder.DESC,
-            title: t('page.home.recentlyPlayed'),
+            album: {
+                enableRefresh: true,
+                sortBy: AlbumListSort.RECENTLY_PLAYED,
+                sortOrder: SortOrder.DESC,
+                title: t('page.home.recentlyPlayed'),
+            },
+            song: {
+                enableRefresh: true,
+                sortBy: SongListSort.RECENTLY_PLAYED,
+                sortOrder: SortOrder.DESC,
+                title: t('page.home.recentlyPlayed'),
+            },
         },
         [HomeItem.RECENTLY_RELEASED]: {
-            enableRefresh: true,
-            itemType: LibraryItem.ALBUM,
-            sortBy: AlbumListSort.RELEASE_DATE,
-            sortOrder: SortOrder.DESC,
-            title: t('page.home.recentlyReleased'),
+            album: {
+                enableRefresh: true,
+                sortBy: AlbumListSort.RELEASE_DATE,
+                sortOrder: SortOrder.DESC,
+                title: t('page.home.recentlyReleased'),
+                maxYear: new Date().getFullYear(),
+            },
+            song: {
+                enableRefresh: true,
+                sortBy: SongListSort.RELEASE_DATE,
+                sortOrder: SortOrder.DESC,
+                title: t('page.home.recentlyReleased'),
+            },
         },
+    };
+
+    const getDefaultView = (itemId: HomeItem): ItemView => {
+        if (isJellyfin) return 'song';
+        return 'album';
     };
 
     const sortedItems = homeItems.filter((item) => !item.disabled);
 
-    const sortedCarousel = sortedItems
-        .filter((item) => item.id !== HomeItem.GENRES)
-        .map((item) => ({
-            ...carousels[item.id],
-            uniqueId: item.id,
-        }));
+    const renderCarousel = (item: { disabled: boolean; id: HomeItem }) => {
+        if (item.id === HomeItem.RECOMMENDED) {
+            return (
+                <RecommendedTracksCarousel
+                    containerQuery={containerQuery}
+                    key="recommended-tracks"
+                    title={t('page.home.recommendedTracks')}
+                />
+            );
+        }
+
+        if (item.id === HomeItem.GENRES) {
+            return <FeaturedGenres key="featured-genres" />;
+        }
+
+        const sectionCfg = carousels[item.id];
+        if (!sectionCfg) return null;
+
+        const viewMode = itemViews[item.id] || getDefaultView(item.id);
+        const cfg = VIEW_TOGGLE_SECTIONS.has(item.id) ? sectionCfg[viewMode] : sectionCfg.album || sectionCfg;
+        if (!cfg) return null;
+
+        const isAlbum = viewMode === 'album';
+        const toggleActions = VIEW_TOGGLE_SECTIONS.has(item.id) ? (
+            <SegmentedControl
+                data={[
+                    { label: t('entity.album', { count: 2 }), value: 'album' },
+                    { label: t('entity.track', { count: 2 }), value: 'song' },
+                ]}
+                onChange={(value) =>
+                    setItemViews((prev) => ({ ...prev, [item.id]: value as ItemView }))
+                }
+                size="xs"
+                value={viewMode}
+            />
+        ) : undefined;
+
+        if (isAlbum) {
+            return (
+                <AlbumInfiniteCarousel
+                    actions={toggleActions}
+                    containerQuery={containerQuery}
+                    enableRefresh={cfg.enableRefresh}
+                    key={`carousel-${item.id}-${viewMode}`}
+                    query={cfg.maxYear ? { maxYear: cfg.maxYear } : undefined}
+                    queryKey={['home', 'album', item.id, viewMode] as const}
+                    rowCount={1}
+                    sortBy={cfg.sortBy as AlbumListSort}
+                    sortOrder={cfg.sortOrder}
+                    title={cfg.title}
+                />
+            );
+        }
+
+        return (
+            <SongInfiniteCarousel
+                actions={toggleActions}
+                containerQuery={containerQuery}
+                enableRefresh={cfg.enableRefresh}
+                key={`carousel-${item.id}-${viewMode}`}
+                queryKey={['home', 'song', item.id, viewMode] as const}
+                rowCount={1}
+                sortBy={cfg.sortBy as SongListSort}
+                sortOrder={cfg.sortOrder}
+                title={cfg.title}
+            />
+        );
+    };
 
     return (
         <AnimatedPage>
@@ -120,58 +235,7 @@ const HomeRoute = () => {
                         {homeFeature && homeFeatureStyle === HomeFeatureStyle.MULTIPLE && (
                             <AlbumInfiniteFeatureCarousel />
                         )}
-                        {sortedItems.map((item) => {
-                            if (item.id === HomeItem.RECOMMENDED) {
-                                return (
-                                    <RecommendedTracksCarousel
-                                        containerQuery={containerQuery}
-                                        key="recommended-tracks"
-                                        title={t('page.home.recommendedTracks')}
-                                    />
-                                );
-                            }
-
-                            if (item.id === HomeItem.GENRES) {
-                                return <FeaturedGenres key="featured-genres" />;
-                            }
-
-                            const carousel = sortedCarousel.find((c) => c.uniqueId === item.id);
-                            if (!carousel) {
-                                return null;
-                            }
-
-                            if (carousel.itemType === LibraryItem.ALBUM) {
-                                return (
-                                    <AlbumInfiniteCarousel
-                                        containerQuery={containerQuery}
-                                        enableRefresh={carousel.enableRefresh}
-                                        key={`carousel-${carousel.uniqueId}`}
-                                        queryKey={['home', 'album', carousel.uniqueId] as const}
-                                        rowCount={1}
-                                        sortBy={carousel.sortBy as AlbumListSort}
-                                        sortOrder={carousel.sortOrder}
-                                        title={carousel.title}
-                                    />
-                                );
-                            }
-
-                            if (carousel.itemType === LibraryItem.SONG) {
-                                return (
-                                    <SongInfiniteCarousel
-                                        containerQuery={containerQuery}
-                                        enableRefresh={carousel.enableRefresh}
-                                        key={`carousel-${carousel.uniqueId}`}
-                                        queryKey={['home', 'song', carousel.uniqueId] as const}
-                                        rowCount={1}
-                                        sortBy={carousel.sortBy as SongListSort}
-                                        sortOrder={carousel.sortOrder}
-                                        title={carousel.title}
-                                    />
-                                );
-                            }
-
-                            return null;
-                        })}
+                        {sortedItems.map((item) => renderCarousel(item))}
                     </Stack>
                 </LibraryContainer>
             </NativeScrollArea>

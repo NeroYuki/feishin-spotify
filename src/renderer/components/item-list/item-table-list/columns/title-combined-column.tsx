@@ -152,6 +152,13 @@ export const DefaultTitleCombinedColumn = (props: ItemTableListInnerColumn) => {
                     })}
                 >
                     <Text className={styles.title} isNoSelect size="md" {...titleLinkProps}>
+                        {item?.id?.startsWith?.('ext-') && (
+                            <Icon
+                                color="info"
+                                icon={String(item.id).startsWith('ext-spotify') ? 'brandSpotify' : 'globe'}
+                                size="xs"
+                            />
+                        )}
                         <ExplicitIndicator explicitStatus={item?.explicitStatus} />
                         {item.name as string}
                     </Text>
@@ -313,7 +320,7 @@ export const QueueSongTitleCombinedColumn = (props: ItemTableListInnerColumn) =>
                         {...titleLinkProps}
                     >
                         <ExplicitIndicator explicitStatus={song?.explicitStatus} />
-                        {song?._serverType === ServerType.SPOTIFY && (
+                        {(song?._serverType === ServerType.SPOTIFY || song?.id?.startsWith?.('ext-spotify')) && (
                             <img
                                 alt="Spotify"
                                 src={spotifyIcon}
@@ -324,6 +331,13 @@ export const QueueSongTitleCombinedColumn = (props: ItemTableListInnerColumn) =>
                                     verticalAlign: 'middle',
                                     width: '11px',
                                 }}
+                            />
+                        )}
+                        {song?.id?.startsWith?.('ext-') && !song?.id?.startsWith?.('ext-spotify') && song?._serverType !== ServerType.SPOTIFY && (
+                            <Icon
+                                color="info"
+                                icon="globe"
+                                size="xs"
                             />
                         )}
                         {row.name as string}

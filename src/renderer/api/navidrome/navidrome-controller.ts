@@ -330,6 +330,13 @@ export const NavidromeController: InternalControllerEndpoint = {
     getAlbumArtistList: async (args) => {
         const { apiClientProps, query } = args;
 
+        // When an external search flag is set (spotifySearch or externalSearch),
+        // delegate to Subsonic's search3.view endpoint so the enrichment proxy
+        // can inject external results.
+        if (query.spotifySearch || query.externalSearch) {
+            return SubsonicController.getAlbumArtistList(args);
+        }
+
         const res = await ndApiClient(apiClientProps).getAlbumArtistList({
             query: {
                 _end: query.startIndex + (query.limit || 0),
@@ -366,11 +373,15 @@ export const NavidromeController: InternalControllerEndpoint = {
             totalRecordCount: Number(res.body.headers.get('x-total-count') || 0),
         };
     },
-    getAlbumArtistListCount: async ({ apiClientProps, query }) =>
-        NavidromeController.getAlbumArtistList({
+    getAlbumArtistListCount: async ({ apiClientProps, query }) => {
+        if (query.spotifySearch || query.externalSearch) {
+            return SubsonicController.getAlbumArtistListCount({ apiClientProps, query });
+        }
+        return NavidromeController.getAlbumArtistList({
             apiClientProps,
             query: { ...query, limit: 1, startIndex: 0 },
-        }).then((result) => result!.totalRecordCount!),
+        }).then((result) => result!.totalRecordCount!);
+    },
     getAlbumDetail: async (args) => {
         const { apiClientProps, query } = args;
 
@@ -429,6 +440,13 @@ export const NavidromeController: InternalControllerEndpoint = {
     getAlbumList: async (args) => {
         const { apiClientProps, query } = args;
 
+        // When an external search flag is set (spotifySearch or externalSearch),
+        // delegate to Subsonic's search3.view endpoint so the enrichment proxy
+        // can inject external results.
+        if (query.spotifySearch || query.externalSearch) {
+            return SubsonicController.getAlbumList(args);
+        }
+
         const genres = hasFeature(apiClientProps.server, ServerFeature.BFR)
             ? query.genreIds
             : query.genreIds?.[0];
@@ -467,11 +485,15 @@ export const NavidromeController: InternalControllerEndpoint = {
             totalRecordCount: Number(res.body.headers.get('x-total-count') || 0),
         };
     },
-    getAlbumListCount: async ({ apiClientProps, query }) =>
-        NavidromeController.getAlbumList({
+    getAlbumListCount: async ({ apiClientProps, query }) => {
+        if (query.spotifySearch || query.externalSearch) {
+            return SubsonicController.getAlbumListCount({ apiClientProps, query });
+        }
+        return NavidromeController.getAlbumList({
             apiClientProps,
             query: { ...query, limit: 1, startIndex: 0 },
-        }).then((result) => result!.totalRecordCount!),
+        }).then((result) => result!.totalRecordCount!);
+    },
     getAlbumRadio: async (args) => {
         const { apiClientProps, query } = args;
 
@@ -815,6 +837,13 @@ export const NavidromeController: InternalControllerEndpoint = {
     getSongList: async (args) => {
         const { apiClientProps, query } = args;
 
+        // When an external search flag is set (spotifySearch or externalSearch),
+        // delegate to Subsonic's search3.view endpoint so the enrichment proxy
+        // can inject external results.
+        if (query.spotifySearch || query.externalSearch) {
+            return SubsonicController.getSongList(args);
+        }
+
         const ALBUM_IDS_BATCH_SIZE = 500;
         const albumIds = query.albumIds;
         const shouldBatch = albumIds && albumIds.length > ALBUM_IDS_BATCH_SIZE;
@@ -879,11 +908,15 @@ export const NavidromeController: InternalControllerEndpoint = {
         };
     },
 
-    getSongListCount: async ({ apiClientProps, query }) =>
-        NavidromeController.getSongList({
+    getSongListCount: async ({ apiClientProps, query }) => {
+        if (query.spotifySearch || query.externalSearch) {
+            return SubsonicController.getSongListCount({ apiClientProps, query });
+        }
+        return NavidromeController.getSongList({
             apiClientProps,
             query: { ...query, limit: 1, startIndex: 0 },
-        }).then((result) => result!.totalRecordCount!),
+        }).then((result) => result!.totalRecordCount!);
+    },
     getStreamUrl: SubsonicController.getStreamUrl,
     getStructuredLyrics: SubsonicController.getStructuredLyrics,
     getTagList: async (args) => {

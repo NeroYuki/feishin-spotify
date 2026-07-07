@@ -31,6 +31,7 @@ interface Card {
 }
 
 interface GridCarouselProps {
+    actions?: ReactNode;
     cards: Card[];
     containerQuery?: ReturnType<typeof useGridCarouselContainerQuery>;
     enableRefresh?: boolean;
@@ -64,6 +65,7 @@ const pageVariants: Variants = {
 
 function BaseGridCarousel(props: GridCarouselProps) {
     const {
+        actions,
         cards,
         containerQuery: providedContainerQuery,
         enableRefresh = false,
@@ -275,6 +277,7 @@ function BaseGridCarousel(props: GridCarouselProps) {
                                     <TextTitle fw={700} isNoSelect order={3}>
                                         {title}
                                     </TextTitle>
+                                    {actions}
                                     {enableRefresh && onRefresh && (
                                         <ActionIcon
                                             icon="refresh"
