@@ -33,9 +33,9 @@ export const PlayerbarSlider = () => {
     const songDuration = currentSong?.duration ? currentSong.duration / 1000 : 0;
     const currentTime = usePlayerTimestamp();
 
+    const formattedTime = formatDuration(currentTime * 1000 || 0);
     const formattedDuration = formatDuration(songDuration * 1000 || 0);
     const formattedTimeRemaining = formatDuration((currentTime - songDuration) * 1000 || 0);
-    const formattedTime = formatDuration(currentTime * 1000 || 0);
 
     const showTimeRemaining = useAppStore((state) => state.showTimeRemaining);
     const { setShowTimeRemaining } = useAppStoreActions();
@@ -59,7 +59,7 @@ export const PlayerbarSlider = () => {
                             </span>
                         </Tooltip>
                     ) : (
-                        <ScrobbleStatus formattedTime={formattedTime} />
+                        <ScrobbleStatus />
                     )}
                 </div>
                 <div className={styles.sliderWrapper}>

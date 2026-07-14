@@ -77,6 +77,17 @@ const HomeItemSchema = z.enum([
     'recommended',
 ]);
 
+const AlbumGroupItemSchema = z.enum([
+    'albumArtists',
+    'duration',
+    'genres',
+    'releaseDate',
+    'releaseYear',
+    'releaseType',
+    'size',
+    'songCount',
+]);
+
 const PlayerItemSchema = z.enum([
     'bit_depth',
     'bit_rate',
@@ -476,6 +487,8 @@ export const GeneralSettingsSchema = z.object({
     albumBackground: z.boolean(),
     albumBackgroundBlur: z.number(),
     albumGroupImageSize: z.number(),
+    albumGroupItems: z.array(SortableItemSchema(AlbumGroupItemSchema)),
+    albumGroupShowFavoriteRating: z.boolean(),
     artistBackground: z.boolean(),
     artistBackgroundBlur: z.number(),
     artistItems: z.array(SortableItemSchema(ArtistItemSchema)),
@@ -506,6 +519,7 @@ export const GeneralSettingsSchema = z.object({
     lastFM: z.boolean(),
     lastfmApiKey: z.string(),
     listenBrainz: z.boolean(),
+    microtonalPitchControls: z.boolean(),
     musicBrainz: z.boolean(),
     nativeAspectRatio: z.boolean(),
     nativeSpotify: z.boolean(),
@@ -571,6 +585,8 @@ const LyricsDisplaySettingsSchema = z.object({
     gap: z.number(),
     gapUnsync: z.number(),
     opacityNonActive: z.number(),
+    paddingLeft: z.number(),
+    paddingRight: z.number(),
     scaleNonActive: z.number(),
 });
 
@@ -583,6 +599,8 @@ const LyricsSettingsSchema = z.object({
     enableRomaji: z.boolean().optional(),
     fetch: z.boolean(),
     follow: z.boolean(),
+    followScrollAlignment: z.number(),
+    lineLeadTimeMs: z.number(),
     preferLocalLyrics: z.boolean(),
     preferRomanizeProxy: z.boolean(),
     romanizeProxyApiKey: z.string(),
@@ -765,6 +783,17 @@ export const SettingsStateSchema = ValidationSettingsStateSchema.merge(
     NonValidatedSettingsStateSchema,
 );
 
+export enum AlbumGroupItem {
+    ALBUM_ARTISTS = 'albumArtists',
+    DURATION = 'duration',
+    GENRES = 'genres',
+    RELEASE_DATE = 'releaseDate',
+    RELEASE_TYPE = 'releaseType',
+    RELEASE_YEAR = 'releaseYear',
+    SIZE = 'size',
+    SONG_COUNT = 'songCount',
+}
+
 export enum ArtistItem {
     BIOGRAPHY = 'biography',
     FAVORITE_SONGS = 'favoriteSongs',
@@ -943,6 +972,7 @@ export interface SettingsSlice extends z.infer<typeof SettingsStateSchema> {
         removeCollection: (id: string) => void;
         reset: () => void;
         resetSampleRate: () => void;
+        setAlbumGroupItems: (items: SortableItem<AlbumGroupItem>[]) => void;
         setArtistItems: (item: SortableItem<ArtistItem>[]) => void;
         setArtistReleaseTypeItems: (item: SortableItem<ArtistReleaseTypeItem>[]) => void;
         setGenreBehavior: (target: GenreTarget) => void;
@@ -1119,6 +1149,17 @@ const artistReleaseTypeItems = Object.values(ArtistReleaseTypeItem).map((item) =
     id: item,
 }));
 
+const albumGroupItems: SortableItem<AlbumGroupItem>[] = [
+    { disabled: false, id: AlbumGroupItem.ALBUM_ARTISTS },
+    { disabled: true, id: AlbumGroupItem.RELEASE_DATE },
+    { disabled: true, id: AlbumGroupItem.RELEASE_YEAR },
+    { disabled: true, id: AlbumGroupItem.SONG_COUNT },
+    { disabled: true, id: AlbumGroupItem.DURATION },
+    { disabled: true, id: AlbumGroupItem.RELEASE_TYPE },
+    { disabled: true, id: AlbumGroupItem.GENRES },
+    { disabled: true, id: AlbumGroupItem.SIZE },
+];
+
 // Determines the default/initial windowBarStyle value based on the current platform.
 const getPlatformDefaultWindowBarStyle = (): Platform => {
     if (utils?.isWindows()) {
@@ -1172,6 +1213,8 @@ const initialState: SettingsState = {
         albumBackground: false,
         albumBackgroundBlur: 3,
         albumGroupImageSize: 0,
+        albumGroupItems,
+        albumGroupShowFavoriteRating: true,
         artistBackground: true,
         artistBackgroundBlur: 3,
         artistItems,
@@ -1205,6 +1248,7 @@ const initialState: SettingsState = {
         lastFM: true,
         lastfmApiKey: '',
         listenBrainz: true,
+        microtonalPitchControls: false,
         musicBrainz: true,
         nativeAspectRatio: false,
         nativeSpotify: false,
@@ -1234,7 +1278,7 @@ const initialState: SettingsState = {
         sidebarCollapseShared: false,
         sidebarItems,
         sidebarPanelOrder: ['queue', 'lyrics', 'visualizer'],
-        sidebarPlaylistFolders: true,
+        sidebarPlaylistFolders: false,
         sidebarPlaylistFolderSeparator: '/',
         sidebarPlaylistFolderTreeIndent: 16,
         sidebarPlaylistFolderTreeLineColor: '',
@@ -1859,6 +1903,8 @@ const initialState: SettingsState = {
         enableRomaji: false,
         fetch: true,
         follow: true,
+        followScrollAlignment: 0,
+        lineLeadTimeMs: 800,
         preferLocalLyrics: true,
         preferRomanizeProxy: false,
         romanizeProxyApiKey: '',
@@ -1876,6 +1922,8 @@ const initialState: SettingsState = {
             gap: 24,
             gapUnsync: 24,
             opacityNonActive: 0.2,
+            paddingLeft: 0,
+            paddingRight: 0,
             scaleNonActive: 0.95,
         },
     },
@@ -2057,6 +2105,11 @@ export const useSettingsStore = createWithEqualityFn<SettingsSlice>()(
                         resetSampleRate: () => {
                             set((state) => {
                                 state.playback.mpvProperties.audioSampleRateHz = 0;
+                            });
+                        },
+                        setAlbumGroupItems: (items: SortableItem<AlbumGroupItem>[]) => {
+                            set((state) => {
+                                state.general.albumGroupItems = items;
                             });
                         },
                         setArtistItems: (items) => {
@@ -2499,7 +2552,7 @@ export const useSettingsStore = createWithEqualityFn<SettingsSlice>()(
                                     id: TableColumn.ALBUM_GROUP,
                                     isEnabled: false,
                                     pinned: 'left',
-                                    width: 200,
+                                    width: 240,
                                 });
                             }
                         }
@@ -2543,10 +2596,31 @@ export const useSettingsStore = createWithEqualityFn<SettingsSlice>()(
                     );
                 }
 
+                if (version < 30) {
+                    for (const [key, displaySettings] of Object.entries(state.lyricsDisplay)) {
+                        const legacySettings = displaySettings as typeof displaySettings & {
+                            paddingX?: number;
+                        };
+                        const legacyPaddingX = legacySettings.paddingX ?? 0;
+
+                        state.lyricsDisplay[key] = {
+                            ...displaySettings,
+                            paddingLeft: displaySettings.paddingLeft ?? legacyPaddingX,
+                            paddingRight: displaySettings.paddingRight ?? legacyPaddingX,
+                        };
+                    }
+                }
+
+                if (version < 31) {
+                    if (state.lyrics.followScrollAlignment === undefined) {
+                        state.lyrics.followScrollAlignment = 0;
+                    }
+                }
+
                 return persistedState;
             },
             name: 'store_settings',
-            version: 28,
+            version: 31,
         },
     ),
 );
@@ -2655,6 +2729,9 @@ export const useImageRes = () => useSettingsStore((state) => state.general.image
 
 export const useAlbumGroupImageSize = () =>
     useSettingsStore((state) => state.general.albumGroupImageSize);
+
+export const useAlbumGroupShowFavoriteRating = () =>
+    useSettingsStore((state) => state.general.albumGroupShowFavoriteRating);
 
 export const useVolumeWidth = () => useSettingsStore((state) => state.general.volumeWidth, shallow);
 
@@ -2775,6 +2852,9 @@ export const useHomeFeatureStyle = () =>
 
 export const useHomeItems = () => useSettingsStore((state) => state.general.homeItems, shallow);
 
+export const useAlbumGroupItems = () =>
+    useSettingsStore((state) => state.general.albumGroupItems, shallow);
+
 export const useArtistItems = () => useSettingsStore((state) => state.general.artistItems, shallow);
 
 export const useArtistReleaseTypeItems = () =>
@@ -2836,3 +2916,6 @@ export const useButterchurnSettings = () => {
         };
     }, shallow);
 };
+
+export const useMicrotonalPitchControls = () =>
+    useSettingsStore((state) => state.general.microtonalPitchControls, shallow);

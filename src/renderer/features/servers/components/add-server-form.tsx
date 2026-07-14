@@ -336,6 +336,10 @@ export const AddServerForm = ({ onCancel }: AddServerFormProps) => {
                         {...form.getInputProps('username')}
                     />
                     <PasswordInput
+                        description={
+                            form.values.type === ServerType.NAVIDROME &&
+                            t('form.addServer.input', { context: 'passwordNoSSO' })
+                        }
                         label={t('form.addServer.input', {
                             context: 'password',
                         })}

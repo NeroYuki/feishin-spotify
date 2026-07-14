@@ -317,6 +317,7 @@ export const QueueSongTitleCombinedColumn = (props: ItemTableListInnerColumn) =>
                         })}
                         isNoSelect
                         size="md"
+                        truncate
                         {...titleLinkProps}
                     >
                         <ExplicitIndicator explicitStatus={song?.explicitStatus} />
@@ -342,18 +343,15 @@ export const QueueSongTitleCombinedColumn = (props: ItemTableListInnerColumn) =>
                         )}
                         {row.name as string}
                         {song?.trackSubtitle && props.itemType !== LibraryItem.QUEUE_SONG && (
-                            <Text
-                                className={clsx({
+                            <span
+                                className={clsx(styles.trackSubtitle, {
                                     [styles.active]: isActive,
                                 })}
-                                component="span"
-                                isMuted
-                                size="sm"
                             >
                                 {' ('}
                                 {song.trackSubtitle}
                                 {')'}
-                            </Text>
+                            </span>
                         )}
                     </Text>
                     <div className={styles.artists}>
@@ -398,6 +396,7 @@ export const QueueSongTitleCombinedColumn = (props: ItemTableListInnerColumn) =>
                     className={styles.title}
                     isNoSelect
                     size="md"
+                    truncate
                     {...titleLinkProps}
                     style={textStyles}
                 >
